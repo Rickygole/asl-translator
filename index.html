@@ -82,13 +82,13 @@ button{font-family:'Syne',sans-serif;font-weight:700;font-size:0.75rem;letter-sp
 .live-body{padding:14px;}
 .live-row{display:flex;align-items:center;gap:12px;padding:12px 14px;
   background:var(--surface);border-radius:10px;}
-.live-word{font-size:1.6rem;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;min-width:80px;}
+.live-word{font-size:1.4rem;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;min-width:90px;}
 .live-conf{font-family:'DM Mono',monospace;font-size:0.65rem;padding:2px 8px;
-  border-radius:4px;border:1px solid var(--border);color:var(--muted);}
+  border-radius:4px;border:1px solid var(--border);color:var(--muted);margin-top:4px;}
 .live-info{flex:1;}
 .live-label{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);margin-bottom:5px;}
 .bar-track{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
-.bar-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width 0.06s linear;}
+.bar-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width 0.05s linear;}
 .bar-pct{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--accent);min-width:35px;text-align:right;}
 .words-row{display:flex;flex-wrap:wrap;gap:6px;min-height:40px;align-items:center;padding:14px;}
 .chip{font-family:'DM Mono',monospace;font-size:0.85rem;font-weight:500;color:var(--accent);
@@ -235,7 +235,7 @@ button{font-family:'Syne',sans-serif;font-weight:700;font-size:0.75rem;letter-sp
   </div>
 </main>
 <script>
-// ── LANGUAGES ─────────────────────────────────────────
+// ── LANGUAGES ──────────────────────────────────────────────────────────
 const LANGS = [
   {code:'en-US',label:'English'},
   {code:'ne-NP',label:'Nepali'},
@@ -252,7 +252,6 @@ const LANGS = [
 ];
 let activeLang = LANGS[1];
 
-// Preload voices immediately
 window.addEventListener('load', () => speechSynthesis.getVoices());
 if(speechSynthesis.onvoiceschanged !== undefined)
   speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
@@ -266,7 +265,6 @@ function buildLangDropdown(){
     sel.appendChild(o);
   });
 }
-
 function onLangChange(){
   const code = document.getElementById('lang-sel').value;
   activeLang = LANGS.find(l=>l.code===code) || LANGS[1];
@@ -275,187 +273,307 @@ function onLangChange(){
   buildSentence();
 }
 
-// ── SIGN DEFINITIONS ──────────────────────────────────
-// 12 signs with UNIQUE finger combinations
-// Each uses different combination of: index/middle/ring/pinky up + thumb out + spread/close
+// ── FINGER EXTENSION HELPERS ────────────────────────────────────────────
+// FIX: Compare tip to PIP (middle joint), NOT MCP (base knuckle)
+// MediaPipe landmarks:
+//   Index:  mcp=5, pip=6, dip=7, tip=8
+//   Middle: mcp=9, pip=10, dip=11, tip=12
+//   Ring:   mcp=13, pip=14, dip=15, tip=16
+//   Pinky:  mcp=17, pip=18, dip=19, tip=20
+//   Thumb:  cmc=1, mcp=2, ip=3, tip=4
+// A finger is extended when tip.y < pip.y (tip is higher on screen)
+function iExt(lm){ return lm[8].y  < lm[6].y  - 0.02; } // index extended
+function mExt(lm){ return lm[12].y < lm[10].y - 0.02; } // middle extended
+function rExt(lm){ return lm[16].y < lm[14].y - 0.02; } // ring extended
+function pExt(lm){ return lm[20].y < lm[18].y - 0.02; } // pinky extended
+function tUp(lm){  return lm[4].y  < lm[3].y  - 0.04; } // thumb pointing up
+function tOut(lm){ return Math.abs(lm[4].x - lm[2].x) > 0.07; } // thumb sideways
+function dist(lm,a,b){ return Math.hypot(lm[a].x-lm[b].x, lm[a].y-lm[b].y); }
+function sprd(lm,a,b){ return Math.abs(lm[a].x-lm[b].x) > 0.055; } // fingers spread
+function near(lm,a,b){ return dist(lm,a,b) < 0.055; }              // fingers close
 
-function ext(lm, tip, mcp){ return lm[tip].y < lm[mcp].y - 0.03; }
-function dist(lm, a, b){ return Math.hypot(lm[a].x-lm[b].x, lm[a].y-lm[b].y); }
-function thumbOut(lm){ return Math.abs(lm[4].x - lm[2].x) > 0.07; }
-function spread(lm, a, b){ return Math.abs(lm[a].x - lm[b].x) > 0.055; }
-function close(lm, a, b){ return dist(lm,a,b) < 0.055; }
+// ── 12 SIGNS WITH UNIQUE, NATURAL HAND SHAPES ──────────────────────────
+// Each sign is designed so no two share the same finger pattern
+// Redesigned: SORRY → INDEX only, GOOD → THUMB+INDEX pinch, PLEASE → B-shape
+const T = {
+  'ne-NP':0, 'hi-IN':1, 'es-ES':2, 'fr-FR':3, 'ar-SA':4,
+  'zh-CN':5, 'ja-JP':6, 'ko-KR':7, 'pt-BR':8, 'de-DE':9, 'it-IT':10, 'en-US':11
+};
 
 const SIGNS = [
-  { word:'HELLO', emoji:'👋', desc:'All 5 fingers up + spread wide + thumb out',
-    t:{'ne-NP':'नमस्ते','hi-IN':'नमस्ते','es-ES':'Hola','fr-FR':'Bonjour','ar-SA':'مرحبا','zh-CN':'你好','ja-JP':'こんにちは','ko-KR':'안녕하세요','pt-BR':'Olá','de-DE':'Hallo','it-IT':'Ciao','en-US':'Hello'},
-    conds(lm){ return [ext(lm,8,5), ext(lm,12,9), ext(lm,16,13), ext(lm,20,17), thumbOut(lm), spread(lm,8,20)]; }
+  {
+    // HELLO: All 4 fingers up + spread wide + thumb out
+    // Unique: only sign with ALL fingers up AND spread AND thumb out
+    word:'HELLO', emoji:'👋',
+    desc:'All fingers up, spread wide, thumb out sideways',
+    t:['नमस्ते','नमस्ते','Hola','Bonjour','مرحبا','你好','こんにちは','안녕하세요','Olá','Hallo','Ciao','Hello'],
+    conds(lm){ return [iExt(lm), mExt(lm), rExt(lm), pExt(lm), tOut(lm), sprd(lm,8,20)]; }
   },
-  { word:'YES', emoji:'✊', desc:'Closed fist — no fingers up, thumb tucked',
-    t:{'ne-NP':'हो','hi-IN':'हाँ','es-ES':'Sí','fr-FR':'Oui','ar-SA':'نعم','zh-CN':'是','ja-JP':'はい','ko-KR':'예','pt-BR':'Sim','de-DE':'Ja','it-IT':'Sì','en-US':'Yes'},
-    conds(lm){ return [!ext(lm,8,5), !ext(lm,12,9), !ext(lm,16,13), !ext(lm,20,17), !thumbOut(lm), dist(lm,4,8)<0.09]; }
+  {
+    // YES: Closed fist, no fingers up, thumb tucked in, no thumb out
+    // Unique: only sign with ALL fingers down AND thumb tucked
+    word:'YES', emoji:'✊',
+    desc:'Closed fist, all fingers curled, no thumb',
+    t:['हो','हाँ','Sí','Oui','نعم','是','はい','예','Sim','Ja','Sì','Yes'],
+    conds(lm){ return [!iExt(lm), !mExt(lm), !rExt(lm), !pExt(lm), !tOut(lm), !tUp(lm)]; }
   },
-  { word:'NO', emoji:'✌️', desc:'Index + middle up + spread apart',
-    t:{'ne-NP':'होइन','hi-IN':'नहीं','es-ES':'No','fr-FR':'Non','ar-SA':'لا','zh-CN':'不','ja-JP':'いいえ','ko-KR':'아니요','pt-BR':'Não','de-DE':'Nein','it-IT':'No','en-US':'No'},
-    conds(lm){ return [ext(lm,8,5), ext(lm,12,9), !ext(lm,16,13), !ext(lm,20,17), spread(lm,8,12), !thumbOut(lm)]; }
+  {
+    // NO: Index + middle up and SPREAD apart (V sign spread wide)
+    // Unique: index+middle up with spread — close fingers = NAME instead
+    word:'NO', emoji:'✌️',
+    desc:'Index + middle up, spread wide apart (V)',
+    t:['होइन','नहीं','No','Non','لا','不','いいえ','아니요','Não','Nein','No','No'],
+    conds(lm){ return [iExt(lm), mExt(lm), !rExt(lm), !pExt(lm), sprd(lm,8,12), !tOut(lm)]; }
   },
-  { word:'HELP', emoji:'👍', desc:'Thumbs up only — all fingers curled',
-    t:{'ne-NP':'मद्दत','hi-IN':'मदद','es-ES':'Ayuda','fr-FR':'Aide','ar-SA':'مساعدة','zh-CN':'帮助','ja-JP':'助けて','ko-KR':'도움','pt-BR':'Ajuda','de-DE':'Hilfe','it-IT':'Aiuto','en-US':'Help'},
-    conds(lm){ return [lm[4].y < lm[3].y - 0.04, !ext(lm,8,5), !ext(lm,12,9), !ext(lm,16,13), !ext(lm,20,17), thumbOut(lm)]; }
+  {
+    // HELP: Thumbs up, all other fingers curled down
+    // Unique: only sign with thumb UP and all fingers DOWN
+    word:'HELP', emoji:'👍',
+    desc:'Thumbs up, all other fingers curled down',
+    t:['मद्दत','मदद','Ayuda','Aide','مساعدة','帮助','助けて','도움','Ajuda','Hilfe','Aiuto','Help'],
+    conds(lm){ return [tUp(lm), !iExt(lm), !mExt(lm), !rExt(lm), !pExt(lm), tOut(lm)]; }
   },
-  { word:'PLEASE', emoji:'🤙', desc:'Pinky only extended up',
-    t:{'ne-NP':'कृपया','hi-IN':'कृपया','es-ES':'Por favor','fr-FR':'S\'il vous plaît','ar-SA':'من فضلك','zh-CN':'请','ja-JP':'お願い','ko-KR':'부탁해요','pt-BR':'Por favor','de-DE':'Bitte','it-IT':'Per favore','en-US':'Please'},
-    conds(lm){ return [!ext(lm,8,5), !ext(lm,12,9), !ext(lm,16,13), ext(lm,20,17), !thumbOut(lm)]; }
+  {
+    // PLEASE: All 4 fingers up, thumb tucked (B-shape, no thumb out)
+    // Unique: all fingers up BUT thumb NOT out — different from HELLO
+    word:'PLEASE', emoji:'🖐️',
+    desc:'All 4 fingers up, thumb tucked in (B shape)',
+    t:['कृपया','कृपया','Por favor','S\'il vous plaît','من فضلك','请','お願い','부탁해요','Por favor','Bitte','Per favore','Please'],
+    conds(lm){ return [iExt(lm), mExt(lm), rExt(lm), pExt(lm), !tOut(lm), !tUp(lm)]; }
   },
-  { word:'THANK YOU', emoji:'🙏', desc:'Ring + pinky up, others curled',
-    t:{'ne-NP':'धन्यवाद','hi-IN':'धन्यवाद','es-ES':'Gracias','fr-FR':'Merci','ar-SA':'شكراً','zh-CN':'谢谢','ja-JP':'ありがとう','ko-KR':'감사합니다','pt-BR':'Obrigado','de-DE':'Danke','it-IT':'Grazie','en-US':'Thank you'},
-    conds(lm){ return [!ext(lm,8,5), !ext(lm,12,9), ext(lm,16,13), ext(lm,20,17), !thumbOut(lm)]; }
+  {
+    // THANK YOU: Ring + pinky up only, index + middle down
+    // Unique: only 2 outer fingers (ring+pinky) up
+    word:'THANK YOU', emoji:'🙏',
+    desc:'Ring + pinky up, index + middle curled down',
+    t:['धन्यवाद','धन्यवाद','Gracias','Merci','شكراً','谢谢','ありがとう','감사합니다','Obrigado','Danke','Grazie','Thank you'],
+    conds(lm){ return [!iExt(lm), !mExt(lm), rExt(lm), pExt(lm), !tOut(lm)]; }
   },
-  { word:'SORRY', emoji:'😔', desc:'Middle finger only extended',
-    t:{'ne-NP':'माफ गर्नुस्','hi-IN':'माफ करना','es-ES':'Lo siento','fr-FR':'Désolé','ar-SA':'آسف','zh-CN':'对不起','ja-JP':'ごめんなさい','ko-KR':'미안해요','pt-BR':'Desculpe','de-DE':'Entschuldigung','it-IT':'Scusa','en-US':'Sorry'},
-    conds(lm){ return [!ext(lm,8,5), ext(lm,12,9), !ext(lm,16,13), !ext(lm,20,17), !thumbOut(lm)]; }
+  {
+    // SORRY: Index finger only pointing up (pointing gesture)
+    // Redesigned from "middle only" — index pointing is more natural
+    word:'SORRY', emoji:'☝️',
+    desc:'Index only pointing up straight',
+    t:['माफ गर्नुस्','माफ करना','Lo siento','Désolé','آسف','对不起','ごめんなさい','미안해요','Desculpe','Entschuldigung','Scusa','Sorry'],
+    conds(lm){ return [iExt(lm), !mExt(lm), !rExt(lm), !pExt(lm), !tOut(lm), !tUp(lm)]; }
   },
-  { word:'GOOD', emoji:'👌', desc:'Ring finger only extended',
-    t:{'ne-NP':'राम्रो','hi-IN':'अच्छा','es-ES':'Bueno','fr-FR':'Bon','ar-SA':'جيد','zh-CN':'好','ja-JP':'いい','ko-KR':'좋아요','pt-BR':'Bom','de-DE':'Gut','it-IT':'Bene','en-US':'Good'},
-    conds(lm){ return [!ext(lm,8,5), !ext(lm,12,9), ext(lm,16,13), !ext(lm,20,17), !thumbOut(lm)]; }
+  {
+    // GOOD: Thumb + index pinch (OK/good gesture)
+    // Redesigned: pinching thumb to index tip is very natural
+    word:'GOOD', emoji:'👌',
+    desc:'Thumb + index pinched together (OK sign)',
+    t:['राम्रो','अच्छा','Bueno','Bon','جيد','好','いい','좋아요','Bom','Gut','Bene','Good'],
+    conds(lm){ return [near(lm,4,8), !mExt(lm), !rExt(lm), !pExt(lm), !tUp(lm)]; }
   },
-  { word:'LOVE', emoji:'🤟', desc:'Index + pinky + thumb out (ILY)',
-    t:{'ne-NP':'माया','hi-IN':'प्यार','es-ES':'Amor','fr-FR':'Amour','ar-SA':'حب','zh-CN':'爱','ja-JP':'愛','ko-KR':'사랑','pt-BR':'Amor','de-DE':'Liebe','it-IT':'Amore','en-US':'Love'},
-    conds(lm){ return [ext(lm,8,5), !ext(lm,12,9), !ext(lm,16,13), ext(lm,20,17), thumbOut(lm)]; }
+  {
+    // LOVE: Index + pinky + thumb out (ILY — "I Love You" hand)
+    // Unique: index and pinky up, middle and ring down, thumb out
+    word:'LOVE', emoji:'🤟',
+    desc:'Index + pinky up, thumb out (ILY hand)',
+    t:['माया','प्यार','Amor','Amour','حب','爱','愛','사랑','Amor','Liebe','Amore','Love'],
+    conds(lm){ return [iExt(lm), !mExt(lm), !rExt(lm), pExt(lm), tOut(lm)]; }
   },
-  { word:'NAME', emoji:'🤞', desc:'Index + middle up, fingers touching',
-    t:{'ne-NP':'नाम','hi-IN':'नाम','es-ES':'Nombre','fr-FR':'Nom','ar-SA':'اسم','zh-CN':'名字','ja-JP':'名前','ko-KR':'이름','pt-BR':'Nome','de-DE':'Name','it-IT':'Nome','en-US':'Name'},
-    conds(lm){ return [ext(lm,8,5), ext(lm,12,9), !ext(lm,16,13), !ext(lm,20,17), close(lm,8,12)]; }
+  {
+    // NAME: Index + middle up, fingers CLOSE together (U-shape)
+    // Unique: index+middle close — spread = NO instead
+    word:'NAME', emoji:'🤞',
+    desc:'Index + middle up, fingers close together (U)',
+    t:['नाम','नाम','Nombre','Nom','اسم','名字','名前','이름','Nome','Name','Nome','Name'],
+    conds(lm){ return [iExt(lm), mExt(lm), !rExt(lm), !pExt(lm), near(lm,8,12)]; }
   },
-  { word:'WATER', emoji:'💧', desc:'Index + middle + ring up (W shape)',
-    t:{'ne-NP':'पानी','hi-IN':'पानी','es-ES':'Agua','fr-FR':'Eau','ar-SA':'ماء','zh-CN':'水','ja-JP':'水','ko-KR':'물','pt-BR':'Água','de-DE':'Wasser','it-IT':'Acqua','en-US':'Water'},
-    conds(lm){ return [ext(lm,8,5), ext(lm,12,9), ext(lm,16,13), !ext(lm,20,17), !thumbOut(lm)]; }
+  {
+    // WATER: Index + middle + ring up (W shape), pinky down
+    // Unique: exactly 3 middle fingers up
+    word:'WATER', emoji:'💧',
+    desc:'Index + middle + ring up (W shape), pinky down',
+    t:['पानी','पानी','Agua','Eau','ماء','水','水','물','Água','Wasser','Acqua','Water'],
+    conds(lm){ return [iExt(lm), mExt(lm), rExt(lm), !pExt(lm), !tOut(lm)]; }
   },
-  { word:'FOOD', emoji:'🍽️', desc:'Thumb + index pinched (O shape)',
-    t:{'ne-NP':'खाना','hi-IN':'खाना','es-ES':'Comida','fr-FR':'Nourriture','ar-SA':'طعام','zh-CN':'食物','ja-JP':'食べ物','ko-KR':'음식','pt-BR':'Comida','de-DE':'Essen','it-IT':'Cibo','en-US':'Food'},
-    conds(lm){ return [dist(lm,4,8) < 0.065, !ext(lm,12,9), !ext(lm,16,13), !ext(lm,20,17), dist(lm,4,8) < dist(lm,4,12)]; }
+  {
+    // FOOD: Pinky only up (unique single-finger sign)
+    word:'FOOD', emoji:'🍽️',
+    desc:'Pinky only extended up, others curled',
+    t:['खाना','खाना','Comida','Nourriture','طعام','食物','食べ物','음식','Comida','Essen','Cibo','Food'],
+    conds(lm){ return [!iExt(lm), !mExt(lm), !rExt(lm), pExt(lm), !tOut(lm)]; }
   },
 ];
 
-// ── CLASSIFIER ────────────────────────────────────────
-// Scores every sign, returns best if >= 72% and clearly winning
+function getTranslation(sign){
+  return sign.t[T[activeLang.code] ?? 11] || sign.t[11];
+}
+
+// ── CLASSIFIER ──────────────────────────────────────────────────────────
+// Score every sign, return best if >= 70% AND 10% clear of second best
 function classify(lm){
   if(!lm || lm.length < 21) return null;
-  let best = null, bestScore = 0, secondScore = 0;
+  let best=null, bestScore=0, secondScore=0;
   for(const s of SIGNS){
     try{
       const c = s.conds(lm);
       const score = c.filter(Boolean).length / c.length;
-      if(score > bestScore){ secondScore = bestScore; bestScore = score; best = s; }
-      else if(score > secondScore) secondScore = score;
+      if(score > bestScore){ secondScore=bestScore; bestScore=score; best=s; }
+      else if(score > secondScore) secondScore=score;
     }catch(e){}
   }
-  // Must be >= 72% AND at least 15% ahead of second best
-  if(bestScore >= 0.72 && bestScore - secondScore >= 0.15)
-    return { sign: best, conf: bestScore };
+  // FIX: Lowered margin from 15% to 10% — avoids blocking valid signs
+  if(bestScore >= 0.70 && bestScore - secondScore >= 0.10)
+    return { sign:best, conf:bestScore };
   return null;
 }
 
-// ── STATE ─────────────────────────────────────────────
-let words = [];
-let holdFrames = 0;
-let cooldownFrames = 0;
-let currentSign = null;
-let mismatch = 0;
+// ── STATE ───────────────────────────────────────────────────────────────
+let words=[], holdFrames=0, cooldownFrames=0, currentSign=null, mismatch=0;
 
-const HOLD_NEEDED = 10;     // ~0.35s at 30fps
-const COOLDOWN = 18;        // ~0.6s cooldown
+// HOLD_NEEDED: frames to hold before confirming (10 = ~0.35s at 30fps)
+// COOLDOWN: frames to pause between words (20 = ~0.67s)
+const HOLD_NEEDED = 10;
+const COOLDOWN    = 20;
 
-// ── WORD CONFIRMED ────────────────────────────────────
+// ── DETECTION LOOP ──────────────────────────────────────────────────────
+function processFrame(lm){
+  const result = classify(lm);
+
+  if(result){
+    const { sign, conf } = result;
+
+    // FIX: On first detection, set currentSign immediately with holdFrames=1
+    // This eliminates the wasted first frame from the original bug
+    if(!currentSign){
+      currentSign = sign;
+      holdFrames  = 1;
+      mismatch    = 0;
+    } else if(sign.word === currentSign.word){
+      // Same sign continuing — increment hold counter, reset mismatch
+      mismatch = 0;
+      holdFrames++;
+    } else {
+      // Different sign detected — require 3 consecutive frames before switching
+      // This prevents single-frame noise from resetting progress
+      mismatch++;
+      if(mismatch >= 3){
+        currentSign = sign;
+        holdFrames  = 1;
+        mismatch    = 0;
+      }
+    }
+
+    // Always display currentSign (not the possibly-different result.sign)
+    // This fixes the stale display bug where conf belonged to a different sign
+    const displayConf = Math.round(conf * 100);
+    document.getElementById('live-word').textContent = currentSign.word;
+    document.getElementById('live-conf').textContent = displayConf + '%';
+    document.getElementById('live-label').textContent = 'hold steady to confirm...';
+    activateRef(currentSign.word);
+
+    const pct = Math.min(100, Math.round((holdFrames / HOLD_NEEDED) * 100));
+    document.getElementById('bar-fill').style.width = pct + '%';
+    document.getElementById('bar-pct').textContent = pct + '%';
+
+    if(holdFrames >= HOLD_NEEDED) onConfirmed(currentSign);
+
+  } else {
+    // No match — slowly decay hold counter so minor wobble doesn't kill progress
+    holdFrames = Math.max(0, holdFrames - 1);
+    if(holdFrames === 0){ currentSign=null; mismatch=0; activateRef(null); }
+
+    document.getElementById('live-word').textContent = currentSign ? currentSign.word : '?';
+    document.getElementById('live-conf').textContent = '—';
+    document.getElementById('live-label').textContent =
+      currentSign ? 'hold that pose...' : 'no sign matched — check reference below';
+    const pct = Math.min(100, Math.round((holdFrames/HOLD_NEEDED)*100));
+    document.getElementById('bar-fill').style.width = pct + '%';
+    document.getElementById('bar-pct').textContent = pct + '%';
+  }
+}
+
+// ── WORD CONFIRMED ──────────────────────────────────────────────────────
 function onConfirmed(sign){
   words.push(sign.word);
-  holdFrames = 0;
-  currentSign = null;
-  mismatch = 0;
+  holdFrames=0; currentSign=null; mismatch=0;
   cooldownFrames = COOLDOWN;
   renderWords();
   flashWord(sign.word);
   buildSentence();
   activateRef(sign.word);
   startCooldownBar();
-  setStatus('confirmed: ' + sign.word + ' — pause, then sign next word');
+  setStatus('confirmed: ' + sign.word + ' — pause then sign next word');
 }
 
 function renderWords(){
   const r = document.getElementById('words-row');
-  if(!words.length){ r.innerHTML = '<span class="hint">words appear here as you sign them...</span>'; return; }
+  if(!words.length){ r.innerHTML='<span class="hint">words appear here as you sign them...</span>'; return; }
   r.innerHTML = words.map(w=>`<span class="chip">${w}</span>`).join('');
 }
 
 function flashWord(w){
-  const f = document.getElementById('word-flash');
-  f.textContent = w; f.classList.add('show');
-  setTimeout(()=>f.classList.remove('show'), 800);
+  const f=document.getElementById('word-flash');
+  f.textContent=w; f.classList.add('show');
+  setTimeout(()=>f.classList.remove('show'),800);
 }
 
 function startCooldownBar(){
-  const b = document.getElementById('cooldown-bar');
-  b.style.transition = 'none'; b.style.width = '100%';
-  setTimeout(()=>{ b.style.transition = `width ${(COOLDOWN/30).toFixed(1)}s linear`; b.style.width = '0%'; }, 30);
+  const b=document.getElementById('cooldown-bar');
+  b.style.transition='none'; b.style.width='100%';
+  setTimeout(()=>{ b.style.transition=`width ${(COOLDOWN/30).toFixed(1)}s linear`; b.style.width='0%'; },30);
 }
 
 function buildSentence(){
   if(!words.length){
-    document.getElementById('eng-out').textContent = '—';
-    document.getElementById('native-out').textContent = '—';
+    document.getElementById('eng-out').textContent='—';
+    document.getElementById('native-out').textContent='—';
     return;
   }
   const eng = words.join(' ');
-  document.getElementById('eng-out').textContent = eng.charAt(0).toUpperCase() + eng.slice(1).toLowerCase();
+  document.getElementById('eng-out').textContent = eng.charAt(0).toUpperCase()+eng.slice(1).toLowerCase();
   document.getElementById('trans-dot').classList.add('on');
   const native = words.map(w=>{
-    const s = SIGNS.find(s=>s.word===w);
-    return s ? (s.t[activeLang.code] || w) : w;
+    const s=SIGNS.find(s=>s.word===w);
+    return s ? getTranslation(s) : w;
   }).join(' ');
   document.getElementById('native-out').textContent = native;
 }
 
 function speakOut(){
-  const text = document.getElementById('native-out').textContent;
-  if(!text || text==='—'){ setStatus('nothing to speak yet'); return; }
+  const text=document.getElementById('native-out').textContent;
+  if(!text||text==='—'){ setStatus('nothing to speak yet'); return; }
   speechSynthesis.cancel();
   function go(){
-    const voices = speechSynthesis.getVoices();
-    const prefix = activeLang.code.split('-')[0];
-    const voice = voices.find(v=>v.lang===activeLang.code) || voices.find(v=>v.lang.startsWith(prefix));
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = activeLang.code;
-    utt.rate = 0.88;
-    if(voice) utt.voice = voice;
+    const voices=speechSynthesis.getVoices();
+    const prefix=activeLang.code.split('-')[0];
+    const voice=voices.find(v=>v.lang===activeLang.code)||voices.find(v=>v.lang.startsWith(prefix));
+    const utt=new SpeechSynthesisUtterance(text);
+    utt.lang=activeLang.code; utt.rate=0.88;
+    if(voice) utt.voice=voice;
     speechSynthesis.speak(utt);
-    setStatus('speaking in ' + activeLang.label + (voice ? '' : ' — no native voice found, using default') + '...');
+    setStatus('speaking in '+activeLang.label+(voice?'':' — no native voice, using default')+'...');
   }
-  speechSynthesis.getVoices().length > 0 ? go() : setTimeout(go, 300);
+  speechSynthesis.getVoices().length>0 ? go() : setTimeout(go,300);
 }
 
 function copyOut(){
-  const t = document.getElementById('eng-out').textContent;
-  if(t && t!=='—') navigator.clipboard.writeText(t).then(()=>setStatus('copied'));
+  const t=document.getElementById('eng-out').textContent;
+  if(t&&t!=='—') navigator.clipboard.writeText(t).then(()=>setStatus('copied'));
 }
 
 function clearAll(){
-  words = []; holdFrames = 0; cooldownFrames = 0; currentSign = null; mismatch = 0;
+  words=[]; holdFrames=0; cooldownFrames=0; currentSign=null; mismatch=0;
   renderWords();
-  document.getElementById('eng-out').textContent = '—';
-  document.getElementById('native-out').textContent = '—';
-  document.getElementById('live-word').textContent = '—';
-  document.getElementById('live-conf').textContent = '';
-  document.getElementById('live-label').textContent = 'show your hand to the camera';
-  document.getElementById('bar-fill').style.width = '0%';
-  document.getElementById('bar-pct').textContent = '0%';
+  document.getElementById('eng-out').textContent='—';
+  document.getElementById('native-out').textContent='—';
+  document.getElementById('live-word').textContent='—';
+  document.getElementById('live-conf').textContent='';
+  document.getElementById('live-label').textContent='show your hand to the camera';
+  document.getElementById('bar-fill').style.width='0%';
+  document.getElementById('bar-pct').textContent='0%';
   document.getElementById('trans-dot').classList.remove('on');
-  document.getElementById('cooldown-bar').style.width = '0%';
+  document.getElementById('cooldown-bar').style.width='0%';
   activateRef(null);
   setStatus('cleared');
 }
 
-// ── REFERENCE GRID ────────────────────────────────────
+// ── REFERENCE GRID ──────────────────────────────────────────────────────
 function buildRefGrid(){
-  document.getElementById('ref-grid').innerHTML = SIGNS.map(s=>
+  document.getElementById('ref-grid').innerHTML=SIGNS.map(s=>
     `<div class="ref-card" id="rc-${s.word.replace(/ /g,'-')}">
       <div class="ref-emoji">${s.emoji}</div>
       <div class="ref-word">${s.word}</div>
@@ -471,147 +589,108 @@ function activateRef(word){
 }
 
 function updateRefPct(lm){
-  if(!lm) return;
   SIGNS.forEach(s=>{
     try{
-      const c = s.conds(lm);
-      const pct = Math.round(c.filter(Boolean).length/c.length*100);
-      const el = document.getElementById('rp-'+s.word.replace(/ /g,'-'));
-      if(el) el.textContent = pct >= 50 ? pct+'%' : '';
+      const c=s.conds(lm);
+      const pct=Math.round(c.filter(Boolean).length/c.length*100);
+      const el=document.getElementById('rp-'+s.word.replace(/ /g,'-'));
+      if(el) el.textContent=pct>=50?pct+'%':'';
     }catch(e){}
   });
 }
 
-// ── MEDIAPIPE ─────────────────────────────────────────
+// ── MEDIAPIPE ───────────────────────────────────────────────────────────
 let holistic=null, camera=null, stream=null;
 let modelReady=false, fCount=0, fTime=Date.now();
 
 function initHolistic(){
   document.getElementById('loading-overlay').classList.add('show');
   setStatus('loading MediaPipe Holistic...');
-  holistic = new Holistic({ locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/${f}` });
-  holistic.setOptions({ modelComplexity:1, smoothLandmarks:true, refineFaceLandmarks:true,
-    minDetectionConfidence:0.5, minTrackingConfidence:0.5 });
+  holistic=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/${f}`});
+  holistic.setOptions({modelComplexity:1,smoothLandmarks:true,refineFaceLandmarks:true,
+    minDetectionConfidence:0.5,minTrackingConfidence:0.5});
   holistic.onResults(onResults);
 }
 
 function onResults(r){
   if(!modelReady){
-    modelReady = true;
+    modelReady=true;
     document.getElementById('loading-overlay').classList.remove('show');
-    setStatus('live — hold a sign steady for ~0.4 seconds');
+    setStatus('live — hold a sign steady for ~0.35 seconds to confirm');
   }
 
-  // FPS
+  // FPS counter
   fCount++;
-  const now = Date.now();
-  if(now - fTime > 1000){ document.getElementById('fps').textContent=fCount+' fps'; fCount=0; fTime=now; }
+  const now=Date.now();
+  if(now-fTime>1000){ document.getElementById('fps').textContent=fCount+' fps'; fCount=0; fTime=now; }
 
-  // Badges
-  document.getElementById('b-lh').classList.toggle('on', !!r.leftHandLandmarks);
-  document.getElementById('b-rh').classList.toggle('on', !!r.rightHandLandmarks);
-  document.getElementById('b-fc').classList.toggle('on', !!r.faceLandmarks);
+  // Tracking badges
+  document.getElementById('b-lh').classList.toggle('on',!!r.leftHandLandmarks);
+  document.getElementById('b-rh').classList.toggle('on',!!r.rightHandLandmarks);
+  document.getElementById('b-fc').classList.toggle('on',!!r.faceLandmarks);
 
   // Keypoint count
-  let kp = 0;
-  if(r.poseLandmarks) kp += r.poseLandmarks.length;
-  if(r.leftHandLandmarks) kp += r.leftHandLandmarks.length;
-  if(r.rightHandLandmarks) kp += r.rightHandLandmarks.length;
-  if(r.faceLandmarks) kp += r.faceLandmarks.length;
-  document.getElementById('kp').textContent = kp + ' keypoints tracked live';
+  let kp=0;
+  if(r.poseLandmarks) kp+=r.poseLandmarks.length;
+  if(r.leftHandLandmarks) kp+=r.leftHandLandmarks.length;
+  if(r.rightHandLandmarks) kp+=r.rightHandLandmarks.length;
+  if(r.faceLandmarks) kp+=r.faceLandmarks.length;
+  document.getElementById('kp').textContent=kp+' keypoints tracked live';
 
   draw(r);
   checkLight();
 
   // Cooldown between words
-  if(cooldownFrames > 0){
+  if(cooldownFrames>0){
     cooldownFrames--;
-    const sec = Math.ceil(cooldownFrames/30);
-    document.getElementById('live-label').textContent = sec > 0 ? `pause... ${sec}s` : 'ready — sign next word';
-    document.getElementById('bar-fill').style.width = '0%';
-    document.getElementById('bar-pct').textContent = '—';
+    const sec=Math.ceil(cooldownFrames/30);
+    document.getElementById('live-label').textContent=sec>0?`pause... ${sec}s`:'ready — sign next word';
+    document.getElementById('bar-fill').style.width='0%';
+    document.getElementById('bar-pct').textContent='—';
     return;
   }
 
-  // Prefer right hand, fall back to left
-  const lm = r.rightHandLandmarks || r.leftHandLandmarks;
+  // Use right hand preferably, fall back to left
+  const lm=r.rightHandLandmarks||r.leftHandLandmarks;
   if(lm) updateRefPct(lm);
 
   if(lm){
-    const result = classify(lm);
-    if(result){
-      const { sign, conf } = result;
-      // Stability: same sign must persist for 3 frames before counter starts
-      if(currentSign && sign.word === currentSign.word){
-        mismatch = 0;
-        holdFrames++;
-      } else {
-        mismatch++;
-        if(mismatch >= 3){
-          currentSign = sign;
-          holdFrames = 1;
-          mismatch = 0;
-        }
-      }
-      // Init currentSign on first detection
-      if(!currentSign){ currentSign = sign; holdFrames = 0; }
-
-      document.getElementById('live-word').textContent = currentSign.word;
-      document.getElementById('live-conf').textContent = Math.round(conf*100) + '%';
-      document.getElementById('live-label').textContent = 'hold steady to confirm';
-      activateRef(currentSign.word);
-
-      const pct = Math.min(100, Math.round((holdFrames / HOLD_NEEDED) * 100));
-      document.getElementById('bar-fill').style.width = pct + '%';
-      document.getElementById('bar-pct').textContent = pct + '%';
-
-      if(holdFrames >= HOLD_NEEDED) onConfirmed(currentSign);
-
-    } else {
-      // No sign matched -- decay hold counter slowly
-      document.getElementById('live-word').textContent = '?';
-      document.getElementById('live-conf').textContent = '—';
-      document.getElementById('live-label').textContent = 'no sign matched — see reference below';
-      holdFrames = Math.max(0, holdFrames - 1);
-      if(holdFrames === 0){ currentSign = null; mismatch = 0; activateRef(null); }
-      const pct = Math.min(100, Math.round((holdFrames/HOLD_NEEDED)*100));
-      document.getElementById('bar-fill').style.width = pct + '%';
-      document.getElementById('bar-pct').textContent = pct + '%';
-    }
+    processFrame(lm);
   } else {
-    document.getElementById('live-word').textContent = '—';
-    document.getElementById('live-conf').textContent = '';
-    document.getElementById('live-label').textContent = 'no hand detected — show your hand';
-    holdFrames = 0; currentSign = null; mismatch = 0;
-    document.getElementById('bar-fill').style.width = '0%';
-    document.getElementById('bar-pct').textContent = '0%';
+    // No hand visible — reset everything
+    document.getElementById('live-word').textContent='—';
+    document.getElementById('live-conf').textContent='';
+    document.getElementById('live-label').textContent='no hand detected — show your hand';
+    holdFrames=0; currentSign=null; mismatch=0;
+    document.getElementById('bar-fill').style.width='0%';
+    document.getElementById('bar-pct').textContent='0%';
     activateRef(null);
   }
 }
 
 function draw(r){
-  const canvas = document.getElementById('overlay');
-  const video = document.getElementById('video');
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const canvas=document.getElementById('overlay');
+  const video=document.getElementById('video');
+  canvas.width=video.videoWidth||640;
+  canvas.height=video.videoHeight||480;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   if(r.leftHandLandmarks){
-    drawConnectors(ctx, r.leftHandLandmarks, HAND_CONNECTIONS, {color:'rgba(0,229,160,0.55)',lineWidth:2});
-    drawLandmarks(ctx, r.leftHandLandmarks, {color:'#00e5a0',lineWidth:1,radius:3});
+    drawConnectors(ctx,r.leftHandLandmarks,HAND_CONNECTIONS,{color:'rgba(0,229,160,0.55)',lineWidth:2});
+    drawLandmarks(ctx,r.leftHandLandmarks,{color:'#00e5a0',lineWidth:1,radius:3});
   }
   if(r.rightHandLandmarks){
-    drawConnectors(ctx, r.rightHandLandmarks, HAND_CONNECTIONS, {color:'rgba(14,165,233,0.55)',lineWidth:2});
-    drawLandmarks(ctx, r.rightHandLandmarks, {color:'#0ea5e9',lineWidth:1,radius:3});
+    drawConnectors(ctx,r.rightHandLandmarks,HAND_CONNECTIONS,{color:'rgba(14,165,233,0.55)',lineWidth:2});
+    drawLandmarks(ctx,r.rightHandLandmarks,{color:'#0ea5e9',lineWidth:1,radius:3});
   }
   if(r.faceLandmarks){
-    drawConnectors(ctx, r.faceLandmarks, FACEMESH_TESSELATION, {color:'rgba(167,139,250,0.07)',lineWidth:0.5});
-    drawConnectors(ctx, r.faceLandmarks, FACEMESH_LIPS, {color:'rgba(167,139,250,0.45)',lineWidth:1});
-    drawConnectors(ctx, r.faceLandmarks, FACEMESH_RIGHT_EYE, {color:'rgba(167,139,250,0.4)',lineWidth:1});
-    drawConnectors(ctx, r.faceLandmarks, FACEMESH_LEFT_EYE, {color:'rgba(167,139,250,0.4)',lineWidth:1});
+    drawConnectors(ctx,r.faceLandmarks,FACEMESH_TESSELATION,{color:'rgba(167,139,250,0.07)',lineWidth:0.5});
+    drawConnectors(ctx,r.faceLandmarks,FACEMESH_LIPS,{color:'rgba(167,139,250,0.45)',lineWidth:1});
+    drawConnectors(ctx,r.faceLandmarks,FACEMESH_RIGHT_EYE,{color:'rgba(167,139,250,0.4)',lineWidth:1});
+    drawConnectors(ctx,r.faceLandmarks,FACEMESH_LEFT_EYE,{color:'rgba(167,139,250,0.4)',lineWidth:1});
   }
   if(r.poseLandmarks)
-    drawConnectors(ctx, r.poseLandmarks, POSE_CONNECTIONS, {color:'rgba(100,120,140,0.1)',lineWidth:1});
+    drawConnectors(ctx,r.poseLandmarks,POSE_CONNECTIONS,{color:'rgba(100,120,140,0.1)',lineWidth:1});
 }
 
 function checkLight(){
@@ -621,24 +700,25 @@ function checkLight(){
     const cx=c.getContext('2d'); cx.drawImage(v,0,0,32,24);
     const d=cx.getImageData(0,0,32,24).data;
     let b=0; for(let i=0;i<d.length;i+=4) b+=(d[i]+d[i+1]+d[i+2])/3;
-    document.getElementById('light-warn').style.display = (b/d.length*4)<60 ? 'block':'none';
+    const avg=b/(d.length/4);
+    document.getElementById('light-warn').style.display=avg<60?'block':'none';
   }catch(e){}
 }
 
-// ── CAMERA ────────────────────────────────────────────
+// ── CAMERA ──────────────────────────────────────────────────────────────
 async function startCamera(){
   try{
     setStatus('requesting camera...');
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false});
-    const v = document.getElementById('video');
-    v.srcObject = stream; await v.play();
-    document.getElementById('cam-idle').style.display = 'none';
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false});
+    const v=document.getElementById('video');
+    v.srcObject=stream; await v.play();
+    document.getElementById('cam-idle').style.display='none';
     document.getElementById('cam-dot').classList.add('on');
-    document.getElementById('cam-label').textContent = 'camera live';
-    document.getElementById('start-btn').style.display = 'none';
-    document.getElementById('stop-btn').style.display = '';
+    document.getElementById('cam-label').textContent='camera live';
+    document.getElementById('start-btn').style.display='none';
+    document.getElementById('stop-btn').style.display='';
     if(!holistic) initHolistic();
-    camera = new Camera(v, { onFrame: async()=>{ if(holistic) await holistic.send({image:v}); }, width:640, height:480 });
+    camera=new Camera(v,{onFrame:async()=>{if(holistic)await holistic.send({image:v});},width:640,height:480});
     camera.start();
   }catch(e){ setStatus('camera error: '+e.message); }
 }
@@ -646,20 +726,20 @@ async function startCamera(){
 function stopCamera(){
   if(camera){ camera.stop(); camera=null; }
   if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
-  modelReady = false;
-  document.getElementById('video').srcObject = null;
-  document.getElementById('cam-idle').style.display = '';
+  modelReady=false;
+  document.getElementById('video').srcObject=null;
+  document.getElementById('cam-idle').style.display='';
   document.getElementById('cam-dot').classList.remove('on');
-  document.getElementById('cam-label').textContent = 'camera offline';
-  document.getElementById('start-btn').style.display = '';
-  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('cam-label').textContent='camera offline';
+  document.getElementById('start-btn').style.display='';
+  document.getElementById('stop-btn').style.display='none';
   ['b-lh','b-rh','b-fc'].forEach(id=>document.getElementById(id).classList.remove('on'));
   setStatus('camera stopped');
 }
 
-function setStatus(msg){ document.getElementById('status-msg').textContent = msg; }
+function setStatus(msg){ document.getElementById('status-msg').textContent=msg; }
 
-// ── INIT ──────────────────────────────────────────────
+// ── INIT ────────────────────────────────────────────────────────────────
 buildLangDropdown();
 buildRefGrid();
 renderWords();
