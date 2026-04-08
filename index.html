@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SignCoach — ASL Translator & Coach</title>
+<title>SignCoach — ASL Translator</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/holistic.js" crossorigin="anonymous"></script>
@@ -29,18 +29,6 @@ header{
 }
 .logo{font-size:1.2rem;font-weight:800;letter-spacing:-0.03em;}
 .logo span{color:var(--accent);}
-
-/* Tabs */
-.tabs{display:flex;gap:4px;}
-.tab{
-  font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;
-  padding:7px 18px;border-radius:7px;border:1px solid var(--border);
-  background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;
-}
-.tab:hover{color:var(--text);}
-.tab.active{background:rgba(0,229,160,0.1);border-color:rgba(0,229,160,0.4);color:var(--accent);}
-
-/* Lang bar */
 .lang-bar{display:flex;gap:5px;flex-wrap:wrap;}
 .lang-btn{
   font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;
@@ -50,13 +38,16 @@ header{
 .lang-btn:hover{color:var(--text);}
 .lang-btn.active{background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.4);color:var(--accent2);}
 
-main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 16px 60px;}
+main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:24px 16px 60px;}
 
-/* Tab pages */
-.page{display:none;}
-.page.active{display:block;}
+.hero{text-align:center;margin-bottom:28px;}
+.hero h1{font-size:clamp(1.8rem,4vw,3rem);font-weight:800;letter-spacing:-0.04em;line-height:1.05;margin-bottom:8px;}
+.hero h1 em{font-style:normal;color:var(--accent);}
+.hero p{font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--muted);letter-spacing:0.04em;}
 
-/* ── PANEL ── */
+.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start;}
+@media(max-width:760px){.grid{grid-template-columns:1fr;}}
+
 .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .ph{
   padding:10px 16px;border-bottom:1px solid var(--border);
@@ -67,19 +58,15 @@ main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 16p
 .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;}
 .dot.on{background:var(--accent);animation:blink 2s ease-in-out infinite;}
 .dot.blue{background:var(--accent2);}
-.dot.purple{background:#a78bfa;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* Camera */
 .cam-wrap{position:relative;aspect-ratio:4/3;background:#050709;overflow:hidden;}
 video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;}
-canvas#overlay,canvas#overlay2{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;}
+canvas#overlay{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;}
 .cam-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
 .cam-idle p{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);}
-.loading-overlay{
-  position:absolute;inset:0;background:rgba(7,9,13,0.88);
-  display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:5;
-}
+.loading-overlay{position:absolute;inset:0;background:rgba(7,9,13,0.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:5;}
 .loading-overlay.show{display:flex;}
 .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -92,15 +79,16 @@ canvas#overlay,canvas#overlay2{position:absolute;inset:0;width:100%;height:100%;
 .tbadge.rh{border-color:var(--accent2);color:var(--accent2);}
 .tbadge.fc{border-color:#a78bfa;color:#a78bfa;}
 
-/* Confirmed flash */
-.confirmed-flash{
-  position:absolute;inset:0;z-index:6;
-  background:rgba(0,229,160,0.15);border:3px solid var(--accent);
-  display:none;align-items:center;justify-content:center;
-  font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);
-  border-radius:0;
+/* Word detected flash overlay */
+.word-flash{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  z-index:6;background:rgba(0,229,160,0.15);border:1px solid var(--accent);
+  color:var(--accent);font-family:'Syne',sans-serif;font-weight:800;
+  font-size:1.4rem;padding:8px 24px;border-radius:8px;
+  display:none;white-space:nowrap;
 }
-.confirmed-flash.show{display:flex;}
+.word-flash.show{display:block;animation:flashIn 0.2s ease;}
+@keyframes flashIn{from{opacity:0;transform:translateX(-50%) scale(0.9)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 
 button{
   font-family:'Syne',sans-serif;font-weight:700;font-size:0.75rem;
@@ -113,128 +101,80 @@ button{
 .btn-ghost:hover{color:var(--text);border-color:var(--muted);}
 .btn-b{background:var(--accent2);color:#fff;}
 .btn-b:hover{background:#38bdf8;}
-.btn-p{background:rgba(167,139,250,0.12);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);}
 .btn-danger{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.3);}
-
 .cam-controls{padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-/* ══════════════════════════════════
-   TRANSLATE PAGE
-══════════════════════════════════ */
-.translate-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start;}
-@media(max-width:780px){.translate-grid{grid-template-columns:1fr;}}
-
-/* ASL detected output */
-.detected-area{padding:18px;}
-.detected-label{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
-.detected-letters{
-  min-height:60px;display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:12px;
-}
-.chip{
-  font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:500;
-  color:var(--accent);background:rgba(0,229,160,0.07);
-  border:1px solid rgba(0,229,160,0.18);border-radius:5px;padding:2px 10px;
-  animation:popIn 0.1s ease;
-}
-@keyframes popIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.chip-hint{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);}
-
-/* Google-translate style boxes */
-.translate-boxes{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-.tbox{padding:16px;background:var(--surface);}
-.tbox:first-child{border-right:1px solid var(--border);}
-.tbox-label{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;}
-.tbox-text{font-size:1.3rem;font-weight:700;color:var(--text);min-height:50px;line-height:1.3;}
-.tbox-text.native{color:var(--accent2);font-size:1.4rem;}
-.tbox-sub{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);margin-top:6px;}
-.translate-actions{padding:12px 16px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--border);}
-
-/* Live sign indicator */
-.live-sign{
-  display:flex;align-items:center;gap:10px;padding:10px 14px;
-  background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.1);
-  border-radius:8px;margin-bottom:12px;
-}
-.live-letter{font-size:2rem;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;min-width:40px;}
-.live-conf{flex:1;}
-.live-name{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);margin-bottom:4px;}
-.conf-bar-track{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
-.conf-bar-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.2s;}
-
-/* Hold progress */
-.hold-ring{
-  width:44px;height:44px;border-radius:50%;
-  border:3px solid var(--border);position:relative;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-}
-.hold-ring svg{position:absolute;top:-3px;left:-3px;transform:rotate(-90deg);}
-.hold-pct{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--accent);}
-
-/* ══════════════════════════════════
-   PRACTICE PAGE
-══════════════════════════════════ */
-.practice-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start;}
-@media(max-width:780px){.practice-grid{grid-template-columns:1fr;}}
+/* Right column */
 .right-col{display:flex;flex-direction:column;gap:14px;}
 
-/* Word card */
-.word-body{padding:16px;}
-.diff-row{display:flex;gap:5px;margin-bottom:10px;}
-.diff-pill{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;padding:3px 9px;border-radius:4px;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all 0.15s;}
-.diff-pill.active{background:rgba(0,229,160,0.08);border-color:rgba(0,229,160,0.35);color:var(--accent);}
-.word-main{font-size:2.4rem;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;margin-bottom:4px;}
-.word-trans{font-size:1.1rem;color:var(--accent2);margin-bottom:4px;font-family:'DM Mono',monospace;}
-.word-native{font-size:0.85rem;color:#a78bfa;margin-bottom:10px;}
-.word-hint{background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.1);border-radius:7px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);line-height:1.6;margin-bottom:8px;}
-.word-hint b{color:var(--accent);font-weight:500;}
-.face-hint{background:rgba(167,139,250,0.04);border:1px solid rgba(167,139,250,0.12);border-radius:7px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:0.68rem;color:#a78bfa;line-height:1.5;}
-.word-nav{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
-
-/* Auto-score display */
-.auto-score-bar{
-  padding:12px 16px;
+/* Live detector */
+.live-body{padding:14px;}
+.live-sign-row{
   display:flex;align-items:center;gap:12px;
-  border-top:1px solid var(--border);
+  padding:12px 14px;background:var(--surface);border-radius:10px;margin-bottom:12px;
 }
-.auto-score-num{font-size:1.8rem;font-weight:800;font-family:'Syne',sans-serif;color:var(--accent);min-width:60px;}
-.auto-score-label{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);}
-.hold-progress{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.hold-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.1s;width:0%;}
+.live-word{font-size:1.6rem;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;min-width:50px;}
+.live-info{flex:1;}
+.live-label{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);margin-bottom:5px;}
+.hold-track{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+.hold-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.08s linear;width:0%;}
+.hold-pct{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--accent);min-width:35px;text-align:right;}
 
-/* Finger grid */
-.score-body{padding:14px;}
-.finger-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px;}
-.fbox{background:var(--surface);border-radius:5px;padding:6px 4px;text-align:center;}
-.fname{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-bottom:4px;}
-.fbar{height:32px;background:var(--border);border-radius:3px;position:relative;overflow:hidden;}
-.fbar-fill{position:absolute;bottom:0;width:100%;border-radius:3px;transition:height 0.2s;}
-.good{background:rgba(0,229,160,0.5);}
-.warn{background:rgba(249,115,22,0.5);}
-.off{background:rgba(239,68,68,0.35);}
-.face-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;}
-.fsc{background:var(--surface);border-radius:6px;padding:7px;text-align:center;}
-.fsc-val{font-size:0.95rem;font-weight:700;font-family:'Syne',sans-serif;}
-.fsc-lbl{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:2px;}
-.feedback-box{background:var(--surface);border-radius:7px;padding:9px 12px;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);line-height:1.7;}
-.feedback-box .ok{color:var(--accent);}
-.feedback-box .err{color:var(--warn);}
-.feedback-box .face-fb{color:#a78bfa;}
+/* Guide steps */
+.guide-title{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.steps-row{display:flex;gap:6px;flex-wrap:wrap;}
+.step-pill{
+  font-family:'DM Mono',monospace;font-size:0.7rem;
+  padding:4px 10px;border-radius:5px;border:1px solid var(--border);
+  color:var(--muted);transition:all 0.2s;
+}
+.step-pill.current{background:rgba(0,229,160,0.1);border-color:var(--accent);color:var(--accent);font-weight:500;}
+.step-pill.done{background:rgba(0,229,160,0.05);border-color:rgba(0,229,160,0.2);color:rgba(0,229,160,0.5);text-decoration:line-through;}
 
-/* Progress */
-.prog-body{padding:14px;}
-.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px;}
-.stat{background:var(--surface);border-radius:7px;padding:9px 10px;}
-.stat-n{font-size:1.4rem;font-weight:800;color:var(--text);font-family:'Syne',sans-serif;}
-.stat-l{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-top:2px;}
-.hist-list{display:flex;flex-direction:column;gap:4px;max-height:110px;overflow-y:auto;}
-.hist-row{display:flex;justify-content:space-between;background:var(--surface);border-radius:5px;padding:5px 9px;}
-.hist-word{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--text);}
-.hist-score{font-family:'DM Mono',monospace;font-size:0.7rem;}
-.hs-hi{color:var(--accent);}
-.hs-mid{color:var(--warn);}
-.hs-lo{color:var(--danger);}
+/* Translation box */
+.translate-box{
+  border:1px solid var(--border);border-radius:10px;overflow:hidden;
+}
+.tbox-top{
+  display:grid;grid-template-columns:1fr 1fr;
+  border-bottom:1px solid var(--border);
+}
+.tbox{padding:14px 16px;background:var(--surface);}
+.tbox:first-child{border-right:1px solid var(--border);}
+.tbox-lang{font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+.tbox-text{font-size:1.1rem;font-weight:700;color:var(--text);min-height:44px;line-height:1.35;}
+.tbox-text.native{color:var(--accent2);}
+.tbox-actions{padding:10px 14px;display:flex;gap:8px;align-items:center;background:var(--card);}
 
-.status-bar{margin-top:14px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:9px;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+/* Word history chips */
+.words-row{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;align-items:center;}
+.word-chip{
+  font-family:'DM Mono',monospace;font-size:0.85rem;font-weight:500;
+  color:var(--accent);background:rgba(0,229,160,0.07);
+  border:1px solid rgba(0,229,160,0.2);border-radius:6px;
+  padding:3px 10px;animation:popIn 0.15s ease;
+}
+@keyframes popIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.words-hint{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);}
+
+/* Hand guide */
+.hand-guide{padding:14px;}
+.guide-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.hg-card{
+  background:var(--surface);border-radius:7px;padding:8px 4px;text-align:center;
+  border:1px solid var(--border);transition:all 0.2s;
+}
+.hg-card.active{border-color:var(--accent);background:rgba(0,229,160,0.06);}
+.hg-word{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-bottom:4px;letter-spacing:0.04em;}
+.hg-shape{font-size:1rem;margin-bottom:2px;}
+.hg-desc{font-family:'DM Mono',monospace;font-size:0.52rem;color:var(--muted);line-height:1.3;}
+
+.status-bar{
+  margin-top:14px;padding:10px 16px;background:var(--surface);
+  border:1px solid var(--border);border-radius:9px;
+  font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
 .status-bar span{color:var(--accent2);}
 </style>
 </head>
@@ -242,27 +182,23 @@ button{
 
 <header>
   <div class="logo">Sign<span>Coach</span></div>
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('translate',this)">Translate</button>
-    <button class="tab" onclick="switchTab('practice',this)">Practice</button>
-  </div>
   <div class="lang-bar" id="lang-bar"></div>
 </header>
 
 <main>
+  <div class="hero">
+    <h1>Sign a word. <em>Hear it anywhere.</em></h1>
+    <p>// whole-word ASL recognition · 30 signs · 12 languages · runs in your browser</p>
+  </div>
 
-<!-- ══════════════════════════════════
-     TRANSLATE TAB
-══════════════════════════════════ -->
-<div class="page active" id="page-translate">
-  <div class="translate-grid">
+  <div class="grid">
 
     <!-- Camera -->
     <div class="panel">
       <div class="ph">
-        <div class="dot" id="t-cam-dot"></div>
-        <span id="t-cam-label">camera offline</span>
-        <div style="margin-left:auto;font-size:0.6rem;" id="t-fps">0 fps</div>
+        <div class="dot" id="cam-dot"></div>
+        <span id="cam-label">camera offline</span>
+        <div style="margin-left:auto;font-size:0.6rem;" id="fps-display">0 fps</div>
       </div>
       <div class="cam-wrap">
         <video id="video" playsinline></video>
@@ -271,7 +207,7 @@ button{
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3d5468" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
           </svg>
-          <p>click start to begin signing</p>
+          <p>click start camera to begin</p>
         </div>
         <div class="loading-overlay" id="loading-overlay">
           <div class="spinner"></div>
@@ -283,169 +219,75 @@ button{
           <div class="tbadge rh" id="badge-rh">R.HAND</div>
           <div class="tbadge fc" id="badge-fc">FACE</div>
         </div>
-        <div class="confirmed-flash" id="confirmed-flash">CONFIRMED!</div>
+        <div class="word-flash" id="word-flash"></div>
       </div>
       <div class="cam-controls">
         <button class="btn-g" id="start-btn" onclick="startCamera()">Start camera</button>
         <button class="btn-ghost" id="stop-btn" onclick="stopCamera()" style="display:none">Stop</button>
-        <button class="btn-danger" onclick="clearTranslation()">Clear</button>
+        <button class="btn-danger" onclick="clearAll()">Clear</button>
       </div>
     </div>
 
-    <!-- Translation output -->
-    <div style="display:flex;flex-direction:column;gap:14px;">
-
-      <!-- Live sign indicator -->
-      <div class="panel">
-        <div class="ph"><div class="dot on"></div><span>detecting now</span></div>
-        <div style="padding:14px;">
-          <div class="live-sign">
-            <div class="live-letter" id="live-letter">—</div>
-            <div class="live-conf">
-              <div class="live-name" id="live-name">waiting for hand...</div>
-              <div class="conf-bar-track">
-                <div class="conf-bar-fill" id="conf-bar" style="width:0%"></div>
-              </div>
-            </div>
-            <div class="hold-ring">
-              <svg width="50" height="50" viewBox="0 0 50 50">
-                <circle cx="25" cy="25" r="22" fill="none" stroke="#1c2733" stroke-width="3"/>
-                <circle id="hold-circle" cx="25" cy="25" r="22" fill="none" stroke="#00e5a0" stroke-width="3"
-                  stroke-dasharray="138" stroke-dashoffset="138" stroke-linecap="round"/>
-              </svg>
-              <div class="hold-pct" id="hold-pct">0%</div>
-            </div>
-          </div>
-
-          <!-- Detected letters strip -->
-          <div class="detected-label">signed letters</div>
-          <div class="detected-letters" id="detected-letters">
-            <span class="chip-hint">sign ASL letters — they appear here</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Google-translate style boxes -->
-      <div class="panel">
-        <div class="ph"><div class="dot blue"></div><span>translation</span></div>
-        <div class="translate-boxes">
-          <div class="tbox">
-            <div class="tbox-label">
-              <span>ASL → English</span>
-            </div>
-            <div class="tbox-text" id="english-result">—</div>
-            <div class="tbox-sub" id="english-sub"></div>
-          </div>
-          <div class="tbox">
-            <div class="tbox-label">
-              <span id="target-lang-label">Nepali</span>
-            </div>
-            <div class="tbox-text native" id="native-result">—</div>
-            <div class="tbox-sub" id="native-sub"></div>
-          </div>
-        </div>
-        <div class="translate-actions">
-          <button class="btn-g" onclick="translateNow()">Translate</button>
-          <button class="btn-b" onclick="speakTranslation()">Speak</button>
-          <button class="btn-ghost" onclick="copyTranslation()">Copy</button>
-          <button class="btn-ghost" onclick="clearTranslation()" style="margin-left:auto">Clear</button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="status-bar">
-    <div>status: <span id="t-status">ready — click Start Camera</span></div>
-    <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);" id="t-kp">543 keypoints available</div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════
-     PRACTICE TAB
-══════════════════════════════════ -->
-<div class="page" id="page-practice">
-  <div class="practice-grid">
-
-    <!-- Camera (reuses same video) -->
-    <div class="panel">
-      <div class="ph">
-        <div class="dot" id="p-cam-dot"></div>
-        <span>camera</span>
-        <div style="margin-left:auto;font-size:0.6rem;" id="p-fps">0 fps</div>
-      </div>
-      <div class="cam-wrap">
-        <video id="video2" playsinline style="display:none"></video>
-        <canvas id="overlay2"></canvas>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-          <div id="practice-cam-note" style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);text-align:center;padding:20px;">
-            Start camera on Translate tab first,<br>then switch here.
-          </div>
-        </div>
-      </div>
-      <!-- Auto-score bar -->
-      <div class="auto-score-bar">
-        <div class="auto-score-num" id="p-score">—</div>
-        <div style="flex:1;">
-          <div class="auto-score-label">live score — hold the sign to confirm</div>
-          <div class="hold-progress"><div class="hold-progress-fill" id="p-hold-bar"></div></div>
-        </div>
-        <button class="btn-p" onclick="speakPracticeWord()">Speak</button>
-      </div>
-      <div class="cam-controls">
-        <button class="btn-ghost" onclick="prevWord()">← Prev</button>
-        <button class="btn-g" onclick="nextWord()">Next →</button>
-        <button class="btn-ghost" onclick="clearPracticeScore()">Reset score</button>
-      </div>
-    </div>
-
-    <!-- Right column -->
+    <!-- Right -->
     <div class="right-col">
 
-      <!-- Word to practice -->
+      <!-- Live detector -->
       <div class="panel">
-        <div class="ph"><div class="dot blue"></div><span>sign this word</span></div>
-        <div class="word-body">
-          <div class="diff-row">
-            <div class="diff-pill active" onclick="setDifficulty('beginner',this)">Beginner</div>
-            <div class="diff-pill" onclick="setDifficulty('intermediate',this)">Intermediate</div>
-            <div class="diff-pill" onclick="setDifficulty('advanced',this)">Advanced</div>
+        <div class="ph"><div class="dot on"></div><span>detecting now</span></div>
+        <div class="live-body">
+          <div class="live-sign-row">
+            <div class="live-word" id="live-word">—</div>
+            <div class="live-info">
+              <div class="live-label" id="live-label">waiting for hand...</div>
+              <div class="hold-track"><div class="hold-fill" id="hold-fill"></div></div>
+            </div>
+            <div class="hold-pct" id="hold-pct">0%</div>
           </div>
-          <div class="word-main" id="p-word-en">HELLO</div>
-          <div class="word-trans" id="p-word-trans">नमस्ते</div>
-          <div class="word-native" id="p-word-native">Nepali</div>
-          <div class="word-hint" id="p-word-hint">Loading...</div>
-          <div class="face-hint" id="p-face-hint"></div>
-          <div class="word-nav">
-            <button class="btn-ghost" onclick="prevWord()">← Prev</button>
-            <button class="btn-g" onclick="nextWord()">Next →</button>
-            <button class="btn-p" onclick="speakPracticeWord()">Speak word</button>
+
+          <!-- Sentence guide -->
+          <div class="guide-title">sign this sentence</div>
+          <div class="steps-row" id="steps-row"></div>
+        </div>
+      </div>
+
+      <!-- Signed words -->
+      <div class="panel">
+        <div class="ph"><div class="dot blue"></div><span>signed words</span></div>
+        <div style="padding:14px;">
+          <div class="words-row" id="words-row">
+            <span class="words-hint">words appear here as you sign them...</span>
           </div>
         </div>
       </div>
 
-      <!-- Finger scores -->
+      <!-- Translation -->
       <div class="panel">
-        <div class="ph"><div class="dot" id="p-score-dot"></div><span>finger + face feedback</span></div>
-        <div class="score-body">
-          <div class="finger-grid" id="p-finger-grid"></div>
-          <div class="face-row" id="p-face-row"></div>
-          <div class="feedback-box" id="p-feedback">Sign the word above — score updates automatically.</div>
+        <div class="ph"><div class="dot" id="trans-dot"></div><span>translation</span></div>
+        <div class="translate-box">
+          <div class="tbox-top">
+            <div class="tbox">
+              <div class="tbox-lang">English</div>
+              <div class="tbox-text" id="eng-out">—</div>
+            </div>
+            <div class="tbox">
+              <div class="tbox-lang" id="native-lang-label">Nepali</div>
+              <div class="tbox-text native" id="native-out">—</div>
+            </div>
+          </div>
+          <div class="tbox-actions">
+            <button class="btn-g" onclick="buildSentence()">Build sentence</button>
+            <button class="btn-b" onclick="speakSentence()">Speak</button>
+            <button class="btn-ghost" onclick="copySentence()">Copy</button>
+            <button class="btn-ghost" onclick="clearAll()" style="margin-left:auto">Clear</button>
+          </div>
         </div>
       </div>
 
-      <!-- Progress -->
+      <!-- Hand guide -->
       <div class="panel">
-        <div class="ph"><div class="dot"></div><span>progress</span></div>
-        <div class="prog-body">
-          <div class="stat-grid">
-            <div class="stat"><div class="stat-n" id="stat-tried">0</div><div class="stat-l">tried</div></div>
-            <div class="stat"><div class="stat-n" id="stat-mastered">0</div><div class="stat-l">mastered</div></div>
-            <div class="stat"><div class="stat-n" id="stat-avg">—</div><div class="stat-l">avg score</div></div>
-          </div>
-          <div class="hist-list" id="hist-list">
-            <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">No attempts yet.</div>
-          </div>
+        <div class="ph"><div class="dot"></div><span>sign reference</span></div>
+        <div class="hand-guide">
+          <div class="guide-grid" id="guide-grid"></div>
         </div>
       </div>
 
@@ -453,10 +295,9 @@ button{
   </div>
 
   <div class="status-bar">
-    <div>status: <span id="p-status">switch to Translate tab to start camera first</span></div>
+    <div>status: <span id="status-msg">ready — click Start Camera</span></div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);" id="kp-count">543 keypoints available</div>
   </div>
-</div>
-
 </main>
 
 <script>
@@ -481,390 +322,582 @@ let activeLang = LANGS[1];
 
 function buildLangBar(){
   const bar = document.getElementById('lang-bar');
-  bar.innerHTML='';
-  LANGS.forEach(lang=>{
-    const btn=document.createElement('button');
-    btn.className='lang-btn'+(lang.code===activeLang.code?' active':'');
-    btn.textContent=lang.flag;
-    btn.title=lang.label;
-    btn.onclick=()=>{
-      activeLang=lang;
-      document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+  LANGS.forEach(lang => {
+    const btn = document.createElement('button');
+    btn.className = 'lang-btn' + (lang.code === activeLang.code ? ' active' : '');
+    btn.textContent = lang.flag;
+    btn.title = lang.label;
+    btn.onclick = () => {
+      activeLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('target-lang-label').textContent=lang.label;
-      updatePracticeWord();
+      document.getElementById('native-lang-label').textContent = lang.label;
     };
     bar.appendChild(btn);
   });
 }
 
 // ══════════════════════════════════════════
-// WORD DATABASE
+// WORD SIGN DEFINITIONS
+// Each sign has: word, emoji hint, description, and a check(lm) function
+// lm = 21 hand landmarks from MediaPipe
 // ══════════════════════════════════════════
-const WORDS={
-  beginner:[
-    {en:'HELLO',t:{'ne-NP':'नमस्ते','hi-IN':'नमस्ते','es-ES':'Hola','fr-FR':'Bonjour','ar-SA':'مرحبا','zh-CN':'你好','ja-JP':'こんにちは','ko-KR':'안녕하세요','pt-BR':'Olá','de-DE':'Hallo','it-IT':'Ciao','en-US':'Hello'},hint:'Raise your <b>open hand</b> to forehead, palm outward. All fingers up and together.',faceHint:'Neutral expression. Slight smile optional.',pose:{thumb:true,index:true,middle:true,ring:true,pinky:true,both:false}},
-    {en:'THANK YOU',t:{'ne-NP':'धन्यवाद','hi-IN':'धन्यवाद','es-ES':'Gracias','fr-FR':'Merci','ar-SA':'شكراً','zh-CN':'谢谢','ja-JP':'ありがとう','ko-KR':'감사합니다','pt-BR':'Obrigado','de-DE':'Danke','it-IT':'Grazie','en-US':'Thank you'},hint:'<b>Flat hand</b> touches chin, moves forward. Palm up at end.',faceHint:'Warm grateful expression.',pose:{thumb:false,index:true,middle:true,ring:true,pinky:true,both:false}},
-    {en:'PLEASE',t:{'ne-NP':'कृपया','hi-IN':'कृपया','es-ES':'Por favor','fr-FR':'S\'il vous plaît','ar-SA':'من فضلك','zh-CN':'请','ja-JP':'お願い','ko-KR':'부탁해요','pt-BR':'Por favor','de-DE':'Bitte','it-IT':'Per favore','en-US':'Please'},hint:'<b>Flat hand</b> on chest, rub in circles.',faceHint:'Polite expression.',pose:{thumb:false,index:false,middle:false,ring:false,pinky:false,both:false}},
-    {en:'YES',t:{'ne-NP':'हो','hi-IN':'हाँ','es-ES':'Sí','fr-FR':'Oui','ar-SA':'نعم','zh-CN':'是','ja-JP':'はい','ko-KR':'예','pt-BR':'Sim','de-DE':'Ja','it-IT':'Sì','en-US':'Yes'},hint:'<b>Fist</b> nods up and down like head nodding yes.',faceHint:'Nod head. Eyebrows up for yes/no question.',pose:{thumb:false,index:false,middle:false,ring:false,pinky:false,both:false}},
-    {en:'NO',t:{'ne-NP':'होइन','hi-IN':'नहीं','es-ES':'No','fr-FR':'Non','ar-SA':'لا','zh-CN':'不','ja-JP':'いいえ','ko-KR':'아니요','pt-BR':'Não','de-DE':'Nein','it-IT':'No','en-US':'No'},hint:'<b>Index + middle</b> tap thumb twice.',faceHint:'Shake head. Firm expression.',pose:{thumb:true,index:true,middle:true,ring:false,pinky:false,both:false}},
-    {en:'HELP',t:{'ne-NP':'मद्दत','hi-IN':'मदद','es-ES':'Ayuda','fr-FR':'Aide','ar-SA':'مساعدة','zh-CN':'帮助','ja-JP':'助けて','ko-KR':'도움','pt-BR':'Ajuda','de-DE':'Hilfe','it-IT':'Aiuto','en-US':'Help'},hint:'<b>Thumbs up</b> on flat palm. Both hands rise together.',faceHint:'Concerned expression.',pose:{thumb:true,index:false,middle:false,ring:false,pinky:false,both:true}},
-    {en:'GOOD',t:{'ne-NP':'राम्रो','hi-IN':'अच्छा','es-ES':'Bueno','fr-FR':'Bon','ar-SA':'جيد','zh-CN':'好','ja-JP':'いい','ko-KR':'좋아요','pt-BR':'Bom','de-DE':'Gut','it-IT':'Bene','en-US':'Good'},hint:'<b>Flat hand</b> at chin, moves forward palm up.',faceHint:'Positive pleased expression.',pose:{thumb:false,index:true,middle:true,ring:true,pinky:true,both:false}},
-    {en:'SORRY',t:{'ne-NP':'माफ गर्नुस्','hi-IN':'माफ करना','es-ES':'Lo siento','fr-FR':'Désolé','ar-SA':'آسف','zh-CN':'对不起','ja-JP':'ごめんなさい','ko-KR':'미안해요','pt-BR':'Desculpe','de-DE':'Entschuldigung','it-IT':'Scusa','en-US':'Sorry'},hint:'<b>Fist</b> rubs in circles on chest.',faceHint:'Apologetic remorseful expression.',pose:{thumb:false,index:false,middle:false,ring:false,pinky:false,both:false}},
-    {en:'WATER',t:{'ne-NP':'पानी','hi-IN':'पानी','es-ES':'Agua','fr-FR':'Eau','ar-SA':'ماء','zh-CN':'水','ja-JP':'水','ko-KR':'물','pt-BR':'Água','de-DE':'Wasser','it-IT':'Acqua','en-US':'Water'},hint:'<b>W-shape</b> (3 fingers up) taps chin twice.',faceHint:'Neutral or thirsty expression.',pose:{thumb:false,index:true,middle:true,ring:true,pinky:false,both:false}},
-    {en:'LOVE',t:{'ne-NP':'माया','hi-IN':'प्यार','es-ES':'Amor','fr-FR':'Amour','ar-SA':'حب','zh-CN':'爱','ja-JP':'愛','ko-KR':'사랑','pt-BR':'Amor','de-DE':'Liebe','it-IT':'Amore','en-US':'Love'},hint:'Cross arms over chest, <b>fists closed</b>, like hugging yourself.',faceHint:'Warm loving expression.',pose:{thumb:false,index:false,middle:false,ring:false,pinky:false,both:true}},
-  ],
-  intermediate:[
-    {en:'FAMILY',t:{'ne-NP':'परिवार','hi-IN':'परिवार','es-ES':'Familia','fr-FR':'Famille','ar-SA':'عائلة','zh-CN':'家庭','ja-JP':'家族','ko-KR':'가족','pt-BR':'Família','de-DE':'Familie','it-IT':'Famiglia','en-US':'Family'},hint:'<b>F-shape both hands</b>, thumbs touch, move apart in arc.',faceHint:'Warm familial expression.',pose:{thumb:true,index:false,middle:false,ring:false,pinky:false,both:true}},
-    {en:'FRIEND',t:{'ne-NP':'साथी','hi-IN':'दोस्त','es-ES':'Amigo','fr-FR':'Ami','ar-SA':'صديق','zh-CN':'朋友','ja-JP':'友達','ko-KR':'친구','pt-BR':'Amigo','de-DE':'Freund','it-IT':'Amico','en-US':'Friend'},hint:'<b>Hook index fingers</b> together then swap.',faceHint:'Friendly warm smile.',pose:{thumb:false,index:true,middle:false,ring:false,pinky:false,both:true}},
-    {en:'LEARN',t:{'ne-NP':'सिक्नु','hi-IN':'सीखना','es-ES':'Aprender','fr-FR':'Apprendre','ar-SA':'تعلم','zh-CN':'学习','ja-JP':'学ぶ','ko-KR':'배우다','pt-BR':'Aprender','de-DE':'Lernen','it-IT':'Imparare','en-US':'Learn'},hint:'<b>Flat hand</b> at forehead, fingers curl inward repeatedly.',faceHint:'Thoughtful focused expression.',pose:{thumb:false,index:false,middle:false,ring:false,pinky:false,both:false}},
-    {en:'WORK',t:{'ne-NP':'काम','hi-IN':'काम','es-ES':'Trabajo','fr-FR':'Travail','ar-SA':'عمل','zh-CN':'工作','ja-JP':'仕事','ko-KR':'일','pt-BR':'Trabalho','de-DE':'Arbeit','it-IT':'Lavoro','en-US':'Work'},hint:'<b>Both fists</b>, dominant hand taps back of other wrist twice.',faceHint:'Serious focused expression.',pose:{thumb:false,index:false,middle:false,ring:false,pinky:false,both:true}},
-  ],
-  advanced:[
-    {en:'COMMUNICATE',t:{'ne-NP':'सञ्चार','hi-IN':'संचार','es-ES':'Comunicar','fr-FR':'Communiquer','ar-SA':'التواصل','zh-CN':'交流','ja-JP':'コミュニケーション','ko-KR':'소통','pt-BR':'Comunicar','de-DE':'Kommunizieren','it-IT':'Comunicare','en-US':'Communicate'},hint:'<b>C-shapes both hands</b>, alternate moving from mouth back and forth.',faceHint:'Engaged attentive expression.',pose:{thumb:false,index:false,middle:false,ring:false,pinky:false,both:true}},
-    {en:'UNDERSTAND',t:{'ne-NP':'बुझ्नु','hi-IN':'समझना','es-ES':'Entender','fr-FR':'Comprendre','ar-SA':'يفهم','zh-CN':'理解','ja-JP':'理解する','ko-KR':'이해하다','pt-BR':'Entender','de-DE':'Verstehen','it-IT':'Capire','en-US':'Understand'},hint:'<b>Fist at forehead</b>, flick index finger up — lightbulb moment.',faceHint:'Sudden realization — eyebrows raise.',pose:{thumb:false,index:true,middle:false,ring:false,pinky:false,both:false}},
-  ]
-};
 
-// ══════════════════════════════════════════
-// ASL LETTER CLASSIFIER (improved with joint angles)
-// ══════════════════════════════════════════
-function vecSub(a,b){return{x:a.x-b.x,y:a.y-b.y,z:(a.z||0)-(b.z||0)};}
-function vecDot(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
-function vecMag(a){return Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z);}
-function angle(a,b,c){
-  const v1=vecSub(a,b), v2=vecSub(c,b);
-  const cos=vecDot(v1,v2)/(vecMag(v1)*vecMag(v2)+1e-6);
-  return Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI;
+function isExtended(lm, mcp, pip, tip){
+  // Finger is extended if tip is above (lower y) than mcp
+  return lm[tip].y < lm[mcp].y - 0.02;
 }
 
-function isFingerExtended(lm, mcp, pip, dip, tip){
-  // Finger is extended if angle at PIP joint is large (straight)
-  const ang = angle(lm[mcp], lm[pip], lm[tip]);
-  return ang > 150;
+function fingerAngle(lm, a, b, c){
+  const v1 = {x:lm[a].x-lm[b].x, y:lm[a].y-lm[b].y};
+  const v2 = {x:lm[c].x-lm[b].x, y:lm[c].y-lm[b].y};
+  const dot = v1.x*v2.x + v1.y*v2.y;
+  const mag = Math.sqrt(v1.x**2+v1.y**2) * Math.sqrt(v2.x**2+v2.y**2);
+  return Math.acos(Math.max(-1,Math.min(1,dot/(mag+1e-6)))) * 180/Math.PI;
 }
 
-function classifyASL(lm){
-  if(!lm||lm.length<21) return null;
+const SIGNS = [
+  {
+    word: 'HELLO',
+    emoji: '👋',
+    desc: 'All 5 fingers up, palm out',
+    translations: {'ne-NP':'नमस्ते','hi-IN':'नमस्ते','es-ES':'Hola','fr-FR':'Bonjour','ar-SA':'مرحبا','zh-CN':'你好','ja-JP':'こんにちは','ko-KR':'안녕하세요','pt-BR':'Olá','de-DE':'Hallo','it-IT':'Ciao','en-US':'Hello'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = isExtended(lm,9,10,12);
+      const r = isExtended(lm,13,14,16);
+      const p = isExtended(lm,17,18,20);
+      return i && m && r && p;
+    }
+  },
+  {
+    word: 'THIS',
+    emoji: '☝️',
+    desc: 'Index finger only, pointing down',
+    translations: {'ne-NP':'यो','hi-IN':'यह','es-ES':'Esto','fr-FR':'Ceci','ar-SA':'هذا','zh-CN':'这个','ja-JP':'これ','ko-KR':'이것','pt-BR':'Isto','de-DE':'Dies','it-IT':'Questo','en-US':'This'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      // Index pointing somewhat downward or sideways
+      const pointingDown = lm[8].y > lm[5].y;
+      return i && m && r && p && pointingDown;
+    }
+  },
+  {
+    word: 'IS',
+    emoji: '🤙',
+    desc: 'Only pinky extended out',
+    translations: {'ne-NP':'छ','hi-IN':'है','es-ES':'Es','fr-FR':'Est','ar-SA':'هو','zh-CN':'是','ja-JP':'です','ko-KR':'입니다','pt-BR':'É','de-DE':'Ist','it-IT':'È','en-US':'Is'},
+    check(lm){
+      const i = !isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = isExtended(lm,17,18,20);
+      return i && m && r && p;
+    }
+  },
+  {
+    word: 'MY',
+    emoji: '🤲',
+    desc: 'Flat hand on chest, palm inward',
+    translations: {'ne-NP':'मेरो','hi-IN':'मेरा','es-ES':'Mi','fr-FR':'Mon','ar-SA':'لي','zh-CN':'我的','ja-JP':'私の','ko-KR':'내','pt-BR':'Meu','de-DE':'Mein','it-IT':'Mio','en-US':'My'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = isExtended(lm,9,10,12);
+      const r = isExtended(lm,13,14,16);
+      const p = isExtended(lm,17,18,20);
+      // Palm facing camera means z of palm center is close to 0
+      const palmIn = lm[9].z > -0.05;
+      return i && m && r && p && palmIn;
+    }
+  },
+  {
+    word: 'PROJECT',
+    emoji: '🤌',
+    desc: 'Thumb + index + middle out (P shape)',
+    translations: {'ne-NP':'परियोजना','hi-IN':'परियोजना','es-ES':'Proyecto','fr-FR':'Projet','ar-SA':'مشروع','zh-CN':'项目','ja-JP':'プロジェクト','ko-KR':'프로젝트','pt-BR':'Projeto','de-DE':'Projekt','it-IT':'Progetto','en-US':'Project'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const thumbOut = Math.abs(lm[4].x - lm[3].x) > 0.04;
+      return i && m && r && p && thumbOut;
+    }
+  },
+  // Extra signs for broader vocabulary
+  {
+    word: 'THANK YOU',
+    emoji: '🙏',
+    desc: 'All fingers up, palm faces body then moves out',
+    translations: {'ne-NP':'धन्यवाद','hi-IN':'धन्यवाद','es-ES':'Gracias','fr-FR':'Merci','ar-SA':'شكراً','zh-CN':'谢谢','ja-JP':'ありがとう','ko-KR':'감사합니다','pt-BR':'Obrigado','de-DE':'Danke','it-IT':'Grazie','en-US':'Thank you'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = isExtended(lm,9,10,12);
+      const r = isExtended(lm,13,14,16);
+      const p = isExtended(lm,17,18,20);
+      const palmFacingIn = lm[9].z > 0.02;
+      return i && m && r && p && palmFacingIn;
+    }
+  },
+  {
+    word: 'YES',
+    emoji: '✊',
+    desc: 'Closed fist, nod it',
+    translations: {'ne-NP':'हो','hi-IN':'हाँ','es-ES':'Sí','fr-FR':'Oui','ar-SA':'نعم','zh-CN':'是','ja-JP':'はい','ko-KR':'예','pt-BR':'Sim','de-DE':'Ja','it-IT':'Sì','en-US':'Yes'},
+    check(lm){
+      return !isExtended(lm,5,6,8) && !isExtended(lm,9,10,12) &&
+             !isExtended(lm,13,14,16) && !isExtended(lm,17,18,20) &&
+             Math.abs(lm[4].x-lm[3].x) < 0.04;
+    }
+  },
+  {
+    word: 'NO',
+    emoji: '✌️',
+    desc: 'Index + middle up, spread apart',
+    translations: {'ne-NP':'होइन','hi-IN':'नहीं','es-ES':'No','fr-FR':'Non','ar-SA':'لا','zh-CN':'不','ja-JP':'いいえ','ko-KR':'아니요','pt-BR':'Não','de-DE':'Nein','it-IT':'No','en-US':'No'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const spread = Math.abs(lm[8].x - lm[12].x) > 0.05;
+      return i && m && r && p && spread;
+    }
+  },
+  {
+    word: 'PLEASE',
+    emoji: '🤚',
+    desc: 'All fingers up, thumb out sideways',
+    translations: {'ne-NP':'कृपया','hi-IN':'कृपया','es-ES':'Por favor','fr-FR':'S\'il vous plaît','ar-SA':'من فضلك','zh-CN':'请','ja-JP':'お願い','ko-KR':'부탁해요','pt-BR':'Por favor','de-DE':'Bitte','it-IT':'Per favore','en-US':'Please'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = isExtended(lm,9,10,12);
+      const r = isExtended(lm,13,14,16);
+      const p = isExtended(lm,17,18,20);
+      const thumbOut = Math.abs(lm[4].x - lm[3].x) > 0.06;
+      return i && m && r && p && thumbOut;
+    }
+  },
+  {
+    word: 'SORRY',
+    emoji: '✊',
+    desc: 'Fist on chest, no thumb out',
+    translations: {'ne-NP':'माफ गर्नुस्','hi-IN':'माफ करना','es-ES':'Lo siento','fr-FR':'Désolé','ar-SA':'آسف','zh-CN':'对不起','ja-JP':'ごめんなさい','ko-KR':'미안해요','pt-BR':'Desculpe','de-DE':'Entschuldigung','it-IT':'Scusa','en-US':'Sorry'},
+    check(lm){
+      return !isExtended(lm,5,6,8) && !isExtended(lm,9,10,12) &&
+             !isExtended(lm,13,14,16) && !isExtended(lm,17,18,20) &&
+             Math.abs(lm[4].x-lm[3].x) > 0.04;
+    }
+  },
+  {
+    word: 'HELP',
+    emoji: '👍',
+    desc: 'Thumbs up only',
+    translations: {'ne-NP':'मद्दत','hi-IN':'मदद','es-ES':'Ayuda','fr-FR':'Aide','ar-SA':'مساعدة','zh-CN':'帮助','ja-JP':'助けて','ko-KR':'도움','pt-BR':'Ajuda','de-DE':'Hilfe','it-IT':'Aiuto','en-US':'Help'},
+    check(lm){
+      const thumbUp = lm[4].y < lm[2].y;
+      return thumbUp && !isExtended(lm,5,6,8) && !isExtended(lm,9,10,12) &&
+             !isExtended(lm,13,14,16) && !isExtended(lm,17,18,20);
+    }
+  },
+  {
+    word: 'GOOD',
+    emoji: '🖐️',
+    desc: 'All 4 fingers up, thumb tucked in',
+    translations: {'ne-NP':'राम्रो','hi-IN':'अच्छा','es-ES':'Bueno','fr-FR':'Bon','ar-SA':'جيد','zh-CN':'好','ja-JP':'いい','ko-KR':'좋아요','pt-BR':'Bom','de-DE':'Gut','it-IT':'Bene','en-US':'Good'},
+    check(lm){
+      return isExtended(lm,5,6,8) && isExtended(lm,9,10,12) &&
+             isExtended(lm,13,14,16) && isExtended(lm,17,18,20) &&
+             Math.abs(lm[4].x-lm[3].x) < 0.03;
+    }
+  },
+  {
+    word: 'LOVE',
+    emoji: '🤟',
+    desc: 'Index + pinky + thumb out (ILY)',
+    translations: {'ne-NP':'माया','hi-IN':'प्यार','es-ES':'Amor','fr-FR':'Amour','ar-SA':'حب','zh-CN':'爱','ja-JP':'愛','ko-KR':'사랑','pt-BR':'Amor','de-DE':'Liebe','it-IT':'Amore','en-US':'Love'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = isExtended(lm,17,18,20);
+      const t = Math.abs(lm[4].x-lm[3].x) > 0.05;
+      return i && m && r && p && t;
+    }
+  },
+  {
+    word: 'NAME',
+    emoji: '🤞',
+    desc: 'Index + middle crossed or tapping',
+    translations: {'ne-NP':'नाम','hi-IN':'नाम','es-ES':'Nombre','fr-FR':'Nom','ar-SA':'اسم','zh-CN':'名字','ja-JP':'名前','ko-KR':'이름','pt-BR':'Nome','de-DE':'Name','it-IT':'Nome','en-US':'Name'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const close = Math.abs(lm[8].x - lm[12].x) < 0.04;
+      return i && m && r && p && close;
+    }
+  },
+  {
+    word: 'WATER',
+    emoji: '💧',
+    desc: 'W shape — index, middle, ring up',
+    translations: {'ne-NP':'पानी','hi-IN':'पानी','es-ES':'Agua','fr-FR':'Eau','ar-SA':'ماء','zh-CN':'水','ja-JP':'水','ko-KR':'물','pt-BR':'Água','de-DE':'Wasser','it-IT':'Acqua','en-US':'Water'},
+    check(lm){
+      return isExtended(lm,5,6,8) && isExtended(lm,9,10,12) &&
+             isExtended(lm,13,14,16) && !isExtended(lm,17,18,20);
+    }
+  },
+  {
+    word: 'STOP',
+    emoji: '🛑',
+    desc: 'Flat hand, all fingers up vertical',
+    translations: {'ne-NP':'रोक्नुस्','hi-IN':'रुको','es-ES':'Para','fr-FR':'Arrêt','ar-SA':'توقف','zh-CN':'停止','ja-JP':'止まれ','ko-KR':'멈춰','pt-BR':'Pare','de-DE':'Stopp','it-IT':'Fermati','en-US':'Stop'},
+    check(lm){
+      const allUp = isExtended(lm,5,6,8) && isExtended(lm,9,10,12) &&
+                    isExtended(lm,13,14,16) && isExtended(lm,17,18,20);
+      const vertical = Math.abs(lm[8].x - lm[20].x) < 0.08;
+      const thumbIn = Math.abs(lm[4].x-lm[3].x) < 0.03;
+      return allUp && vertical && thumbIn;
+    }
+  },
+  {
+    word: 'ME',
+    emoji: '👆',
+    desc: 'Index pointing at yourself',
+    translations: {'ne-NP':'म','hi-IN':'मैं','es-ES':'Yo','fr-FR':'Moi','ar-SA':'أنا','zh-CN':'我','ja-JP':'私','ko-KR':'나','pt-BR':'Eu','de-DE':'Ich','it-IT':'Io','en-US':'Me'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const pointingUp = lm[8].y < lm[5].y - 0.04;
+      return i && m && r && p && pointingUp;
+    }
+  },
+  {
+    word: 'YOU',
+    emoji: '👉',
+    desc: 'Index pointing forward/outward',
+    translations: {'ne-NP':'तपाईं','hi-IN':'आप','es-ES':'Tú','fr-FR':'Vous','ar-SA':'أنت','zh-CN':'你','ja-JP':'あなた','ko-KR':'당신','pt-BR':'Você','de-DE':'Sie','it-IT':'Tu','en-US':'You'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const pointingSide = Math.abs(lm[8].x - lm[5].x) > 0.04;
+      return i && m && r && p && pointingSide;
+    }
+  },
+  {
+    word: 'WHAT',
+    emoji: '🤷',
+    desc: 'Index up, slight side tilt',
+    translations: {'ne-NP':'के','hi-IN':'क्या','es-ES':'Qué','fr-FR':'Quoi','ar-SA':'ماذا','zh-CN':'什么','ja-JP':'何','ko-KR':'무엇','pt-BR':'O que','de-DE':'Was','it-IT':'Cosa','en-US':'What'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      return i && m && r && p;
+    }
+  },
+  {
+    word: 'WHERE',
+    emoji: '📍',
+    desc: 'Index up, wrist tilts side to side',
+    translations: {'ne-NP':'कहाँ','hi-IN':'कहाँ','es-ES':'Dónde','fr-FR':'Où','ar-SA':'أين','zh-CN':'哪里','ja-JP':'どこ','ko-KR':'어디','pt-BR':'Onde','de-DE':'Wo','it-IT':'Dove','en-US':'Where'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const lean = Math.abs(lm[8].x - lm[5].x) > 0.02;
+      return i && m && r && p && lean;
+    }
+  },
+  {
+    word: 'FOOD',
+    emoji: '🍽️',
+    desc: 'Fingertips touch thumb (O shape)',
+    translations: {'ne-NP':'खाना','hi-IN':'खाना','es-ES':'Comida','fr-FR':'Nourriture','ar-SA':'طعام','zh-CN':'食物','ja-JP':'食べ物','ko-KR':'음식','pt-BR':'Comida','de-DE':'Essen','it-IT':'Cibo','en-US':'Food'},
+    check(lm){
+      const d = Math.hypot(lm[4].x-lm[8].x, lm[4].y-lm[8].y);
+      return d < 0.07;
+    }
+  },
+  {
+    word: 'MORE',
+    emoji: '🤏',
+    desc: 'All fingertips pinched to thumb',
+    translations: {'ne-NP':'थप','hi-IN':'और','es-ES':'Más','fr-FR':'Plus','ar-SA':'المزيد','zh-CN':'更多','ja-JP':'もっと','ko-KR':'더','pt-BR':'Mais','de-DE':'Mehr','it-IT':'Di più','en-US':'More'},
+    check(lm){
+      const d1 = Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y);
+      const d2 = Math.hypot(lm[4].x-lm[12].x,lm[4].y-lm[12].y);
+      const d3 = Math.hypot(lm[4].x-lm[16].x,lm[4].y-lm[16].y);
+      return d1 < 0.06 && d2 < 0.07 && d3 < 0.08;
+    }
+  },
+  {
+    word: 'FRIEND',
+    emoji: '🤝',
+    desc: 'Hook index fingers together',
+    translations: {'ne-NP':'साथी','hi-IN':'दोस्त','es-ES':'Amigo','fr-FR':'Ami','ar-SA':'صديق','zh-CN':'朋友','ja-JP':'友達','ko-KR':'친구','pt-BR':'Amigo','de-DE':'Freund','it-IT':'Amico','en-US':'Friend'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const hook = lm[8].y > lm[7].y;
+      return i && m && r && p && hook;
+    }
+  },
+  {
+    word: 'HAPPY',
+    emoji: '😊',
+    desc: 'Flat hand brushes up chest twice',
+    translations: {'ne-NP':'खुसी','hi-IN':'खुश','es-ES':'Feliz','fr-FR':'Heureux','ar-SA':'سعيد','zh-CN':'快乐','ja-JP':'嬉しい','ko-KR':'행복','pt-BR':'Feliz','de-DE':'Glücklich','it-IT':'Felice','en-US':'Happy'},
+    check(lm){
+      const allUp = isExtended(lm,5,6,8) && isExtended(lm,9,10,12) &&
+                    isExtended(lm,13,14,16) && isExtended(lm,17,18,20);
+      const palmUp = lm[9].y > lm[0].y;
+      return allUp && palmUp;
+    }
+  },
+  {
+    word: 'UNDERSTAND',
+    emoji: '💡',
+    desc: 'Index flicks up from fist (lightbulb)',
+    translations: {'ne-NP':'बुझ्नु','hi-IN':'समझना','es-ES':'Entender','fr-FR':'Comprendre','ar-SA':'يفهم','zh-CN':'理解','ja-JP':'理解する','ko-KR':'이해하다','pt-BR':'Entender','de-DE':'Verstehen','it-IT':'Capire','en-US':'Understand'},
+    check(lm){
+      const i = isExtended(lm,5,6,8);
+      const m = !isExtended(lm,9,10,12);
+      const r = !isExtended(lm,13,14,16);
+      const p = !isExtended(lm,17,18,20);
+      const high = lm[8].y < lm[0].y - 0.15;
+      return i && m && r && p && high;
+    }
+  },
+  {
+    word: 'WORK',
+    emoji: '💼',
+    desc: 'Fist taps back of other wrist',
+    translations: {'ne-NP':'काम','hi-IN':'काम','es-ES':'Trabajo','fr-FR':'Travail','ar-SA':'عمل','zh-CN':'工作','ja-JP':'仕事','ko-KR':'일','pt-BR':'Trabalho','de-DE':'Arbeit','it-IT':'Lavoro','en-US':'Work'},
+    check(lm){
+      return !isExtended(lm,5,6,8) && !isExtended(lm,9,10,12) &&
+             !isExtended(lm,13,14,16) && !isExtended(lm,17,18,20) &&
+             lm[4].y > lm[0].y;
+    }
+  },
+  {
+    word: 'LEARN',
+    emoji: '📚',
+    desc: 'Flat hand at forehead, fingers curl in',
+    translations: {'ne-NP':'सिक्नु','hi-IN':'सीखना','es-ES':'Aprender','fr-FR':'Apprendre','ar-SA':'تعلم','zh-CN':'学习','ja-JP':'学ぶ','ko-KR':'배우다','pt-BR':'Aprender','de-DE':'Lernen','it-IT':'Imparare','en-US':'Learn'},
+    check(lm){
+      const mid = (lm[5].y + lm[9].y + lm[13].y + lm[17].y)/4;
+      return mid < lm[0].y - 0.1;
+    }
+  },
+  {
+    word: 'FAMILY',
+    emoji: '👨‍👩‍👧',
+    desc: 'F-shape, both hands make circle',
+    translations: {'ne-NP':'परिवार','hi-IN':'परिवार','es-ES':'Familia','fr-FR':'Famille','ar-SA':'عائلة','zh-CN':'家庭','ja-JP':'家族','ko-KR':'가족','pt-BR':'Família','de-DE':'Familie','it-IT':'Famiglia','en-US':'Family'},
+    check(lm){
+      const d = Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y);
+      const othersUp = isExtended(lm,9,10,12) && isExtended(lm,13,14,16) && isExtended(lm,17,18,20);
+      return d < 0.05 && othersUp;
+    }
+  },
+  {
+    word: 'GOOD MORNING',
+    emoji: '🌅',
+    desc: 'Open hand rises from elbow — flat arm sweeps up',
+    translations: {'ne-NP':'शुभ प्रभात','hi-IN':'सुप्रभात','es-ES':'Buenos días','fr-FR':'Bonjour','ar-SA':'صباح الخير','zh-CN':'早上好','ja-JP':'おはよう','ko-KR':'좋은 아침','pt-BR':'Bom dia','de-DE':'Guten Morgen','it-IT':'Buongiorno','en-US':'Good morning'},
+    check(lm){
+      const allUp = isExtended(lm,5,6,8) && isExtended(lm,9,10,12) &&
+                    isExtended(lm,13,14,16) && isExtended(lm,17,18,20);
+      const handHigh = lm[0].y < 0.4;
+      return allUp && handHigh;
+    }
+  },
+  {
+    word: 'GOODBYE',
+    emoji: '👋',
+    desc: 'Wave hand side to side, all fingers up',
+    translations: {'ne-NP':'बिदाइ','hi-IN':'अलविदा','es-ES':'Adiós','fr-FR':'Au revoir','ar-SA':'وداعاً','zh-CN':'再见','ja-JP':'さようなら','ko-KR':'안녕히 가세요','pt-BR':'Tchau','de-DE':'Auf Wiedersehen','it-IT':'Arrivederci','en-US':'Goodbye'},
+    check(lm){
+      const allUp = isExtended(lm,5,6,8) && isExtended(lm,9,10,12) &&
+                    isExtended(lm,13,14,16) && isExtended(lm,17,18,20);
+      const thumbOut = Math.abs(lm[4].x-lm[3].x) > 0.04;
+      const wristHigh = lm[0].y < 0.6;
+      return allUp && thumbOut && wristHigh;
+    }
+  },
+];
 
-  const thumbExt  = isFingerExtended(lm,1,2,3,4);
-  const indexExt  = isFingerExtended(lm,5,6,7,8);
-  const middleExt = isFingerExtended(lm,9,10,11,12);
-  const ringExt   = isFingerExtended(lm,13,14,15,16);
-  const pinkyExt  = isFingerExtended(lm,17,18,19,20);
+// Target sentence for the demo
+const TARGET = ['HELLO','THIS','IS','MY','PROJECT'];
 
-  // Thumb out sideways
-  const thumbOut = Math.abs(lm[4].x - lm[3].x) > 0.06;
-  // Index-middle spread (V sign)
-  const imSpread = Math.abs(lm[8].x - lm[12].x) > 0.06;
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let signedWords = [];
+let holdFrames = 0;
+let lastWord = '';
+let cooldown = 0;
+const HOLD_NEEDED = 35; // ~1.2 seconds at 30fps
+const COOLDOWN_FRAMES = 20; // pause between words
 
-  // All fingers up
-  if(indexExt&&middleExt&&ringExt&&pinkyExt&&thumbExt) return {letter:'B',conf:0.82};
-  // Fist
-  if(!indexExt&&!middleExt&&!ringExt&&!pinkyExt&&!thumbOut) return {letter:'S',conf:0.78};
-  // Fist with thumb out
-  if(!indexExt&&!middleExt&&!ringExt&&!pinkyExt&&thumbOut) return {letter:'A',conf:0.80};
-  // Thumbs up
-  if(!indexExt&&!middleExt&&!ringExt&&!pinkyExt&&thumbExt) return {letter:'A',conf:0.75};
-  // Index only
-  if(indexExt&&!middleExt&&!ringExt&&!pinkyExt) return {letter:'G',conf:0.76};
-  // Index + middle
-  if(indexExt&&middleExt&&!ringExt&&!pinkyExt){
-    if(imSpread) return {letter:'V',conf:0.78};
-    return {letter:'U',conf:0.76};
+// ══════════════════════════════════════════
+// SIGN CLASSIFIER
+// Runs every frame, returns best matching word or null
+// ══════════════════════════════════════════
+function classifySign(lm){
+  if(!lm || lm.length < 21) return null;
+  for(const sign of SIGNS){
+    try{
+      if(sign.check(lm)) return sign;
+    }catch(e){}
   }
-  // Index + middle + ring
-  if(indexExt&&middleExt&&ringExt&&!pinkyExt) return {letter:'W',conf:0.74};
-  // Pinky only
-  if(!indexExt&&!middleExt&&!ringExt&&pinkyExt) return {letter:'I',conf:0.77};
-  // Index + pinky (horns/Y)
-  if(indexExt&&!middleExt&&!ringExt&&pinkyExt) return {letter:'Y',conf:0.75};
-  // Middle only
-  if(!indexExt&&middleExt&&!ringExt&&!pinkyExt) return {letter:'D',conf:0.72};
-  // All except thumb
-  if(indexExt&&middleExt&&ringExt&&pinkyExt&&!thumbExt) return {letter:'B',conf:0.80};
-
   return null;
 }
 
 // ══════════════════════════════════════════
-// TRANSLATE TAB LOGIC
+// WORD OUTPUT
 // ══════════════════════════════════════════
-let letterBuffer = '';
-let lastLetter = '';
-let holdFrames = 0;
-let holdLetterFrames = 0;
-const HOLD_NEEDED = 20; // frames to confirm a letter
-
-const ABBREVIATIONS = {
-  'U':'YOU','R':'ARE','Y':'WHY','C':'SEE','B':'BE','N':'AND','W':'WITH',
-  'TY':'THANK YOU','PLS':'PLEASE','HLO':'HELLO','GD':'GOOD',
-  'ILY':'I LOVE YOU','HRU':'HOW ARE YOU','OMG':'OH MY GOD',
-};
-const DICTIONARY = {
-  'HLO':'HELLO','GD':'GOOD','BD':'BAD','SM':'SMALL','BG':'BIG',
-  'HLP':'HELP','TNK':'THANK','SRY':'SORRY','WLC':'WELCOME',
-  'NM':'NAME','WH':'WHAT','WR':'WHERE','WN':'WHEN','HW':'HOW',
-  'LV':'LOVE','GT':'GET','CM':'COME','ST':'STOP',
-};
-
-function processRaw(raw){
-  let words = raw.trim().toUpperCase().split(/\s+/).filter(Boolean);
-  words = words.map(w=>w.replace(/(.)\1+/g,'$1'));
-  words = words.map(w=>DICTIONARY[w]||ABBREVIATIONS[w]||w);
-  let s = words.join(' ');
-  s = s.charAt(0).toUpperCase()+s.slice(1).toLowerCase();
-  s = s.replace(/\b i \b/g,' I ').replace(/^i /,'I ');
-  if(s && !/[.!?]$/.test(s)) s+='.';
-  return s;
+function onWordConfirmed(sign){
+  signedWords.push(sign.word);
+  renderWords();
+  showWordFlash(sign.word);
+  buildSentence();
+  updateSteps();
+  lastWord = sign.word;
+  holdFrames = 0;
+  cooldown = COOLDOWN_FRAMES;
 }
 
-function addLetter(ch){
-  if(ch===' '&&letterBuffer.endsWith(' ')) return;
-  letterBuffer+=ch;
-  renderLetters();
-}
-
-function renderLetters(){
-  const d=document.getElementById('detected-letters');
-  if(!letterBuffer.trim()){
-    d.innerHTML='<span class="chip-hint">sign ASL letters — they appear here</span>';
+function renderWords(){
+  const row = document.getElementById('words-row');
+  if(!signedWords.length){
+    row.innerHTML = '<span class="words-hint">words appear here as you sign them...</span>';
     return;
   }
-  d.innerHTML=letterBuffer.split('').map(ch=>
-    ch===' '?'<span style="width:10px;display:inline-block"></span>'
-    :`<span class="chip">${ch}</span>`
+  row.innerHTML = signedWords.map(w =>
+    `<span class="word-chip">${w}</span>`
   ).join('');
 }
 
-function translateNow(){
-  const raw=letterBuffer.trim();
-  if(!raw){
-    document.getElementById('english-result').textContent='—';
-    document.getElementById('native-result').textContent='—';
+function showWordFlash(word){
+  const f = document.getElementById('word-flash');
+  f.textContent = word;
+  f.classList.add('show');
+  setTimeout(()=>f.classList.remove('show'), 900);
+}
+
+function buildSentence(){
+  if(!signedWords.length){
+    document.getElementById('eng-out').textContent = '—';
+    document.getElementById('native-out').textContent = '—';
     return;
   }
-  const english=processRaw(raw);
-  document.getElementById('english-result').textContent=english;
-  document.getElementById('english-sub').textContent='from ASL fingerspelling';
+  const sentence = signedWords.join(' ').toLowerCase();
+  const cap = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+  document.getElementById('eng-out').textContent = cap;
+  document.getElementById('trans-dot').classList.add('on');
 
-  // For native translation -- show same for now with language label
-  // (Web Speech can speak it but we can't translate text without API)
-  // Show the English and offer to speak in target language
-  const trans = currentWord()?.t[activeLang.code] || english;
-  document.getElementById('native-result').textContent=
-    activeLang.code==='en-US' ? english : '↓ press Speak to hear in '+activeLang.label;
-  document.getElementById('native-sub').textContent=activeLang.label;
-  document.getElementById('target-lang-label').textContent=activeLang.label;
-
-  setTStatus('translated — press Speak to hear in '+activeLang.label);
-}
-
-function speakTranslation(){
-  const text=document.getElementById('english-result').textContent;
-  if(!text||text==='—') return;
-  speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(text);
-  utt.lang=activeLang.code;
-  utt.rate=0.9;
-  speechSynthesis.speak(utt);
-}
-
-function copyTranslation(){
-  const t=document.getElementById('english-result').textContent;
-  if(t&&t!=='—') navigator.clipboard.writeText(t).then(()=>setTStatus('copied to clipboard'));
-}
-
-function clearTranslation(){
-  letterBuffer='';lastLetter='';holdFrames=0;holdLetterFrames=0;
-  renderLetters();
-  document.getElementById('english-result').textContent='—';
-  document.getElementById('native-result').textContent='—';
-  document.getElementById('english-sub').textContent='';
-  document.getElementById('native-sub').textContent='';
-  document.getElementById('live-letter').textContent='—';
-  document.getElementById('live-name').textContent='waiting for hand...';
-  document.getElementById('conf-bar').style.width='0%';
-  document.getElementById('hold-circle').style.strokeDashoffset='138';
-  document.getElementById('hold-pct').textContent='0%';
-  setTStatus('cleared');
-}
-
-// ══════════════════════════════════════════
-// PRACTICE TAB LOGIC
-// ══════════════════════════════════════════
-let difficulty='beginner';
-let wordIndex=0;
-let practiceHoldFrames=0;
-let practiceScores=[];
-let practiceHistory=[];
-let practiceTried=0;
-let practiceMastered=0;
-
-function currentWordList(){return WORDS[difficulty];}
-function currentWord(){return currentWordList()[wordIndex];}
-
-function updatePracticeWord(){
-  const w=currentWord();
-  document.getElementById('p-word-en').textContent=w.en;
-  const trans=w.t[activeLang.code]||w.t['en-US'];
-  document.getElementById('p-word-trans').textContent=trans;
-  document.getElementById('p-word-native').textContent=activeLang.label;
-  document.getElementById('p-word-hint').innerHTML=w.hint;
-  document.getElementById('p-face-hint').textContent='Face: '+w.faceHint;
-}
-
-function nextWord(){wordIndex=(wordIndex+1)%currentWordList().length;updatePracticeWord();clearPracticeScore();}
-function prevWord(){wordIndex=(wordIndex-1+currentWordList().length)%currentWordList().length;updatePracticeWord();clearPracticeScore();}
-function setDifficulty(d,el){
-  difficulty=d;wordIndex=0;
-  document.querySelectorAll('.diff-pill').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-  updatePracticeWord();clearPracticeScore();
-}
-
-function speakPracticeWord(){
-  const w=currentWord();
-  const text=w.t[activeLang.code]||w.en;
-  speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(text);
-  utt.lang=activeLang.code;utt.rate=0.9;
-  speechSynthesis.speak(utt);
-}
-
-function scorePose(results){
-  const w=currentWord();
-  const ref=w.pose;
-  const lm=results.rightHandLandmarks||results.leftHandLandmarks;
-  const bothPresent=!!(results.rightHandLandmarks&&results.leftHandLandmarks);
-
-  const fingers=['thumb','index','middle','ring','pinky'];
-  const fNames=['Thumb','Index','Middle','Ring','Pinky'];
-  let fScores=[0,0,0,0,0];
-
-  if(lm){
-    const thumbExt=isFingerExtended(lm,1,2,3,4);
-    const indexExt=isFingerExtended(lm,5,6,7,8);
-    const middleExt=isFingerExtended(lm,9,10,11,12);
-    const ringExt=isFingerExtended(lm,13,14,15,16);
-    const pinkyExt=isFingerExtended(lm,17,18,19,20);
-    const state={thumb:thumbExt,index:indexExt,middle:middleExt,ring:ringExt,pinky:pinkyExt};
-    fingers.forEach((f,i)=>{fScores[i]=state[f]===ref[f]?1:0;});
-  }
-
-  const bothScore=ref.both?(bothPresent?1:0):1;
-  const handScore=lm?(fScores.reduce((a,b)=>a+b,0)/5):0;
-  const overall=Math.round((handScore*0.65+bothScore*0.2+0.15)*100);
-
-  // Face
-  const face=detectFace(results.faceLandmarks);
-
-  // Update practice score display
-  const scoreEl=document.getElementById('p-score');
-  scoreEl.textContent=overall+'%';
-  scoreEl.style.color=overall>=80?'var(--accent)':overall>=60?'var(--warn)':'var(--danger)';
-  document.getElementById('p-score-dot').classList.toggle('on',overall>50);
-
-  // Finger bars
-  const fg=document.getElementById('p-finger-grid');
-  fg.innerHTML='';
-  fingers.forEach((f,i)=>{
-    const pct=fScores[i]*100;
-    const cls=pct===100?'good':pct>50?'warn':'off';
-    fg.innerHTML+=`<div class="fbox"><div class="fname">${fNames[i]}</div><div class="fbar"><div class="fbar-fill ${cls}" style="height:${Math.max(8,pct)}%"></div></div></div>`;
+  // Find native translations for each word
+  const nativeWords = signedWords.map(w => {
+    const sign = SIGNS.find(s => s.word === w);
+    return sign ? (sign.translations[activeLang.code] || w) : w;
   });
+  document.getElementById('native-out').textContent = nativeWords.join(' ');
+}
 
-  // Face row
-  document.getElementById('p-face-row').innerHTML=`
-    <div class="fsc"><div class="fsc-val" style="color:#a78bfa">${Math.round(face.brow*100)}%</div><div class="fsc-lbl">brow raise</div></div>
-    <div class="fsc"><div class="fsc-val" style="color:#a78bfa">${Math.round(face.mouth*100)}%</div><div class="fsc-lbl">mouth open</div></div>
-    <div class="fsc"><div class="fsc-val" style="color:#a78bfa">${Math.round(face.smile*100)}%</div><div class="fsc-lbl">smile</div></div>`;
+function speakSentence(){
+  const text = document.getElementById('native-out').textContent;
+  if(!text || text === '—') return;
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = activeLang.code;
+  utt.rate = 0.9;
+  speechSynthesis.speak(utt);
+}
 
-  // Feedback
-  let fb='';
-  if(!lm){fb='<span class="err">No hand detected — show your hand to the camera.</span>';} 
-  else{
-    fingers.forEach((f,i)=>{
-      if(fScores[i]===1){fb+=`<span class="ok">${fNames[i]}: correct</span><br>`;}
-      else{
-        const should=f==='thumb'?(ref.thumb?'extend out':'tuck in'):
-          (ref[f]?'extend up':'curl down');
-        fb+=`<span class="err">${fNames[i]}: ${should}</span><br>`;
-      }
-    });
-  }
-  if(ref.both&&!bothPresent) fb+='<span class="err">This sign needs BOTH hands.</span><br>';
-  fb+=`<span class="face-fb">Brow: ${Math.round(face.brow*100)}% · Mouth: ${Math.round(face.mouth*100)}% · Smile: ${Math.round(face.smile*100)}%</span>`;
-  document.getElementById('p-feedback').innerHTML=fb;
+function copySentence(){
+  const t = document.getElementById('eng-out').textContent;
+  if(t && t !== '—') navigator.clipboard.writeText(t).then(()=>setStatus('copied!'));
+}
 
-  // Hold progress -- auto confirm at 80%+ held for 1.5s
-  if(overall>=80){
-    practiceHoldFrames++;
-    const pct=Math.min(100,(practiceHoldFrames/45)*100);
-    document.getElementById('p-hold-bar').style.width=pct+'%';
-    if(practiceHoldFrames>=45){
-      // Confirmed!
-      practiceHoldFrames=0;
-      document.getElementById('p-hold-bar').style.width='0%';
-      practiceTried++;
-      practiceMastered++;
-      practiceScores.push(overall);
-      practiceHistory.unshift({word:currentWord().en,score:overall});
-      if(practiceHistory.length>10) practiceHistory.pop();
-      updatePracticeProgress();
-      // Flash and auto next
-      showConfirmedFlash();
-      setTimeout(()=>nextWord(),1200);
-      setPStatus('confirmed! moving to next word...');
+function clearAll(){
+  signedWords = [];
+  holdFrames = 0;
+  lastWord = '';
+  cooldown = 0;
+  renderWords();
+  document.getElementById('eng-out').textContent = '—';
+  document.getElementById('native-out').textContent = '—';
+  document.getElementById('live-word').textContent = '—';
+  document.getElementById('live-label').textContent = 'waiting for hand...';
+  document.getElementById('hold-fill').style.width = '0%';
+  document.getElementById('hold-pct').textContent = '0%';
+  document.getElementById('trans-dot').classList.remove('on');
+  updateSteps();
+  setStatus('cleared — sign away');
+}
+
+// ══════════════════════════════════════════
+// SENTENCE GUIDE STEPS
+// ══════════════════════════════════════════
+function buildSteps(){
+  const row = document.getElementById('steps-row');
+  row.innerHTML = TARGET.map(w =>
+    `<div class="step-pill" id="step-${w}">${w}</div>`
+  ).join('');
+}
+
+function updateSteps(){
+  TARGET.forEach((w,i) => {
+    const el = document.getElementById('step-'+w);
+    if(!el) return;
+    const signedCount = signedWords.filter(sw=>sw===w).length;
+    const targetCount = TARGET.slice(0,i+1).filter(tw=>tw===w).length;
+    if(signedWords.length > i && signedWords[i] === w){
+      el.className = 'step-pill done';
+    } else if(signedWords.length === i){
+      el.className = 'step-pill current';
+    } else {
+      el.className = 'step-pill';
     }
-  } else {
-    practiceHoldFrames=Math.max(0,practiceHoldFrames-1);
-    document.getElementById('p-hold-bar').style.width=
-      Math.min(100,(practiceHoldFrames/45)*100)+'%';
+  });
+}
+
+// ══════════════════════════════════════════
+// HAND GUIDE CARDS
+// ══════════════════════════════════════════
+function buildGuideGrid(){
+  const grid = document.getElementById('guide-grid');
+  const show = SIGNS.slice(0,15);
+  grid.innerHTML = show.map(s =>
+    `<div class="hg-card" id="hg-${s.word.replace(/ /g,'-')}">
+      <div class="hg-word">${s.word}</div>
+      <div class="hg-shape">${s.emoji}</div>
+      <div class="hg-desc">${s.desc}</div>
+    </div>`
+  ).join('');
+}
+
+function highlightGuide(word){
+  document.querySelectorAll('.hg-card').forEach(c=>c.classList.remove('active'));
+  if(word){
+    const el = document.getElementById('hg-'+word.replace(/ /g,'-'));
+    if(el) el.classList.add('active');
   }
-
-  return overall;
-}
-
-function detectFace(faceLm){
-  if(!faceLm) return{brow:0,mouth:0,smile:0};
-  const browY=(faceLm[70].y+faceLm[63].y)/2;
-  const eyeY=faceLm[159].y;
-  const brow=Math.max(0,Math.min(1,(eyeY-browY)*10));
-  const mouth=Math.max(0,Math.min(1,Math.abs(faceLm[13].y-faceLm[14].y)*20));
-  const mw=Math.abs(faceLm[61].x-faceLm[291].x);
-  const smile=Math.max(0,Math.min(1,(mw-0.2)*8));
-  return{brow,mouth,smile};
-}
-
-function showConfirmedFlash(){
-  const f=document.getElementById('confirmed-flash');
-  f.classList.add('show');
-  setTimeout(()=>f.classList.remove('show'),1000);
-}
-
-function clearPracticeScore(){
-  practiceHoldFrames=0;
-  document.getElementById('p-score').textContent='—';
-  document.getElementById('p-score').style.color='var(--accent)';
-  document.getElementById('p-finger-grid').innerHTML='';
-  document.getElementById('p-face-row').innerHTML='';
-  document.getElementById('p-feedback').textContent='Sign the word above — score updates automatically.';
-  document.getElementById('p-score-dot').classList.remove('on');
-  document.getElementById('p-hold-bar').style.width='0%';
-}
-
-function updatePracticeProgress(){
-  document.getElementById('stat-tried').textContent=practiceTried;
-  document.getElementById('stat-mastered').textContent=practiceMastered;
-  const avg=practiceScores.length?Math.round(practiceScores.reduce((a,b)=>a+b,0)/practiceScores.length):null;
-  document.getElementById('stat-avg').textContent=avg!==null?avg+'%':'—';
-  const hl=document.getElementById('hist-list');
-  if(!practiceHistory.length){hl.innerHTML='<div style="font-family:\'DM Mono\',monospace;font-size:0.7rem;color:var(--muted);">No attempts yet.</div>';return;}
-  hl.innerHTML=practiceHistory.map(h=>{
-    const cls=h.score>=80?'hs-hi':h.score>=60?'hs-mid':'hs-lo';
-    return`<div class="hist-row"><span class="hist-word">${h.word}</span><span class="hist-score ${cls}">${h.score}%</span></div>`;
-  }).join('');
 }
 
 // ══════════════════════════════════════════
@@ -872,13 +905,20 @@ function updatePracticeProgress(){
 // ══════════════════════════════════════════
 let holistic=null, camera=null, stream=null;
 let modelReady=false, frameCount=0, lastFpsTime=Date.now();
-let activePage='translate';
 
 function initHolistic(){
   document.getElementById('loading-overlay').classList.add('show');
-  setTStatus('loading MediaPipe Holistic — both hands + face + pose...');
-  holistic=new Holistic({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/${f}`});
-  holistic.setOptions({modelComplexity:1,smoothLandmarks:true,refineFaceLandmarks:true,minDetectionConfidence:0.5,minTrackingConfidence:0.5});
+  setStatus('loading MediaPipe Holistic — both hands + face + pose...');
+  holistic = new Holistic({
+    locateFile: f=>`https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/${f}`
+  });
+  holistic.setOptions({
+    modelComplexity:1,
+    smoothLandmarks:true,
+    refineFaceLandmarks:true,
+    minDetectionConfidence:0.5,
+    minTrackingConfidence:0.5
+  });
   holistic.onResults(onResults);
 }
 
@@ -886,18 +926,16 @@ function onResults(results){
   if(!modelReady){
     modelReady=true;
     document.getElementById('loading-overlay').classList.remove('show');
-    setTStatus('live — sign ASL letters to translate');
-    setPStatus('live — sign the word shown to score');
-    document.getElementById('practice-cam-note').style.display='none';
+    setStatus('live — sign HELLO to start');
+    updateSteps();
   }
 
   // FPS
   frameCount++;
   const now=Date.now();
   if(now-lastFpsTime>1000){
-    const fps=frameCount;frameCount=0;lastFpsTime=now;
-    document.getElementById('t-fps').textContent=fps+' fps';
-    document.getElementById('p-fps').textContent=fps+' fps';
+    document.getElementById('fps-display').textContent=frameCount+' fps';
+    frameCount=0;lastFpsTime=now;
   }
 
   // Badges
@@ -911,55 +949,52 @@ function onResults(results){
   if(results.leftHandLandmarks) kp+=results.leftHandLandmarks.length;
   if(results.rightHandLandmarks) kp+=results.rightHandLandmarks.length;
   if(results.faceLandmarks) kp+=results.faceLandmarks.length;
-  document.getElementById('t-kp').textContent=kp+' keypoints tracked';
+  document.getElementById('kp-count').textContent=kp+' keypoints tracked live';
 
-  // Draw on both canvases
-  drawOn('overlay', results);
-  drawOn('overlay2', results);
-
-  // Light check
+  // Draw
+  drawResults(results);
   checkLight();
 
-  // Classify hand sign (translate tab)
-  const lm=results.rightHandLandmarks||results.leftHandLandmarks;
+  // Cooldown between words
+  if(cooldown > 0){ cooldown--; return; }
+
+  // Get dominant hand
+  const lm = results.rightHandLandmarks || results.leftHandLandmarks;
+
   if(lm){
-    const result=classifyASL(lm);
-    if(result){
-      document.getElementById('live-letter').textContent=result.letter;
-      document.getElementById('live-name').textContent='detected: '+result.letter+' ('+Math.round(result.conf*100)+'%)';
-      document.getElementById('conf-bar').style.width=(result.conf*100)+'%';
-      holdLetterFrames++;
-      const holdPct=Math.min(100,(holdLetterFrames/HOLD_NEEDED)*100);
-      document.getElementById('hold-circle').style.strokeDashoffset=138-(138*holdPct/100);
-      document.getElementById('hold-pct').textContent=Math.round(holdPct)+'%';
-      if(holdLetterFrames>=HOLD_NEEDED&&result.letter!==lastLetter){
-        lastLetter=result.letter;
-        addLetter(result.letter);
-        holdLetterFrames=0;
+    const match = classifySign(lm);
+    if(match){
+      document.getElementById('live-word').textContent = match.word;
+      document.getElementById('live-label').textContent = 'hold to confirm: '+match.desc;
+      highlightGuide(match.word);
+      holdFrames++;
+      const pct = Math.min(100, Math.round((holdFrames/HOLD_NEEDED)*100));
+      document.getElementById('hold-fill').style.width = pct+'%';
+      document.getElementById('hold-pct').textContent = pct+'%';
+      if(holdFrames >= HOLD_NEEDED){
+        onWordConfirmed(match);
       }
     } else {
-      document.getElementById('live-letter').textContent='—';
-      document.getElementById('live-name').textContent='no sign detected';
-      document.getElementById('conf-bar').style.width='0%';
-      holdLetterFrames=Math.max(0,holdLetterFrames-2);
-      const holdPct=Math.min(100,(holdLetterFrames/HOLD_NEEDED)*100);
-      document.getElementById('hold-circle').style.strokeDashoffset=138-(138*holdPct/100);
-      if(holdLetterFrames===0&&lastLetter!==''){addLetter(' ');lastLetter='';}
+      document.getElementById('live-word').textContent = '—';
+      document.getElementById('live-label').textContent = 'no sign matched — try a sign from the guide';
+      holdFrames = Math.max(0, holdFrames-2);
+      const pct = Math.min(100,Math.round((holdFrames/HOLD_NEEDED)*100));
+      document.getElementById('hold-fill').style.width = pct+'%';
+      document.getElementById('hold-pct').textContent = pct+'%';
+      highlightGuide(null);
     }
   } else {
-    document.getElementById('live-letter').textContent='—';
-    document.getElementById('live-name').textContent='no hand visible';
-    document.getElementById('conf-bar').style.width='0%';
-    holdLetterFrames=0;
-    if(lastLetter!==''){addLetter(' ');lastLetter='';}
+    document.getElementById('live-word').textContent = '—';
+    document.getElementById('live-label').textContent = 'no hand detected';
+    holdFrames = 0;
+    document.getElementById('hold-fill').style.width = '0%';
+    document.getElementById('hold-pct').textContent = '0%';
+    highlightGuide(null);
   }
-
-  // Practice tab auto-score
-  if(activePage==='practice') scorePose(results);
 }
 
-function drawOn(canvasId, results){
-  const canvas=document.getElementById(canvasId);
+function drawResults(results){
+  const canvas=document.getElementById('overlay');
   const video=document.getElementById('video');
   canvas.width=video.videoWidth||640;
   canvas.height=video.videoHeight||480;
@@ -975,12 +1010,12 @@ function drawOn(canvasId, results){
   }
   if(results.faceLandmarks){
     drawConnectors(ctx,results.faceLandmarks,FACEMESH_TESSELATION,{color:'rgba(167,139,250,0.1)',lineWidth:0.5});
-    drawConnectors(ctx,results.faceLandmarks,FACEMESH_RIGHT_EYE,{color:'rgba(167,139,250,0.5)',lineWidth:1});
-    drawConnectors(ctx,results.faceLandmarks,FACEMESH_LEFT_EYE,{color:'rgba(167,139,250,0.5)',lineWidth:1});
-    drawConnectors(ctx,results.faceLandmarks,FACEMESH_LIPS,{color:'rgba(167,139,250,0.6)',lineWidth:1.5});
+    drawConnectors(ctx,results.faceLandmarks,FACEMESH_LIPS,{color:'rgba(167,139,250,0.5)',lineWidth:1});
+    drawConnectors(ctx,results.faceLandmarks,FACEMESH_RIGHT_EYE,{color:'rgba(167,139,250,0.4)',lineWidth:1});
+    drawConnectors(ctx,results.faceLandmarks,FACEMESH_LEFT_EYE,{color:'rgba(167,139,250,0.4)',lineWidth:1});
   }
   if(results.poseLandmarks){
-    drawConnectors(ctx,results.poseLandmarks,POSE_CONNECTIONS,{color:'rgba(100,120,140,0.2)',lineWidth:1});
+    drawConnectors(ctx,results.poseLandmarks,POSE_CONNECTIONS,{color:'rgba(100,120,140,0.15)',lineWidth:1});
   }
 }
 
@@ -1001,16 +1036,13 @@ function checkLight(){
 // ══════════════════════════════════════════
 async function startCamera(){
   try{
-    setTStatus('requesting camera...');
+    setStatus('requesting camera...');
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false});
     const video=document.getElementById('video');
     video.srcObject=stream;await video.play();
-    // Mirror video2 for practice tab
-    document.getElementById('video2').srcObject=stream;
     document.getElementById('cam-idle').style.display='none';
-    document.getElementById('t-cam-dot').classList.add('on');
-    document.getElementById('p-cam-dot').classList.add('on');
-    document.getElementById('t-cam-label').textContent='camera live';
+    document.getElementById('cam-dot').classList.add('on');
+    document.getElementById('cam-label').textContent='camera live';
     document.getElementById('start-btn').style.display='none';
     document.getElementById('stop-btn').style.display='';
     if(!holistic) initHolistic();
@@ -1019,7 +1051,7 @@ async function startCamera(){
       width:640,height:480
     });
     camera.start();
-  }catch(e){setTStatus('camera error: '+e.message);}
+  }catch(e){setStatus('camera error: '+e.message);}
 }
 
 function stopCamera(){
@@ -1028,41 +1060,26 @@ function stopCamera(){
   modelReady=false;
   document.getElementById('video').srcObject=null;
   document.getElementById('cam-idle').style.display='';
-  document.getElementById('t-cam-dot').classList.remove('on');
-  document.getElementById('p-cam-dot').classList.remove('on');
-  document.getElementById('t-cam-label').textContent='camera offline';
+  document.getElementById('cam-dot').classList.remove('on');
+  document.getElementById('cam-label').textContent='camera offline';
   document.getElementById('start-btn').style.display='';
   document.getElementById('stop-btn').style.display='none';
-  ['badge-lh','badge-rh','badge-fc'].forEach(id=>document.getElementById(id).classList.remove('active'));
-  setTStatus('camera stopped');
+  ['badge-lh','badge-rh','badge-fc'].forEach(id=>
+    document.getElementById(id).classList.remove('active'));
+  setStatus('camera stopped');
 }
 
-// ══════════════════════════════════════════
-// TABS
-// ══════════════════════════════════════════
-function switchTab(name, el){
-  activePage=name;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  el.classList.add('active');
-  // Mirror camera feed to practice overlay
-  if(name==='practice'&&stream){
-    const v2=document.getElementById('video2');
-    if(!v2.srcObject) v2.srcObject=stream;
-  }
+function setStatus(msg){
+  document.getElementById('status-msg').textContent=msg;
 }
-
-function setTStatus(msg){document.getElementById('t-status').textContent=msg;}
-function setPStatus(msg){document.getElementById('p-status').textContent=msg;}
 
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
 buildLangBar();
-updatePracticeWord();
-updatePracticeProgress();
-document.getElementById('target-lang-label').textContent=activeLang.label;
+buildSteps();
+buildGuideGrid();
+renderWords();
 </script>
 </body>
 </html>
