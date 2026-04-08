@@ -48,7 +48,7 @@ button{font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;letter-spa
 .btn-green:hover{background:#00ffb2;}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
 .btn-ghost:hover{color:var(--text);border-color:var(--muted);}
-.btn-blue{background:var(--accent2);color:#fff;margin-left:auto;}
+.btn-blue{background:var(--accent2);color:#fff;}
 .btn-blue:hover{background:#38bdf8;}
 .right-col{display:flex;flex-direction:column;gap:18px;}
 .letters-body{padding:20px 18px;min-height:90px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
@@ -64,8 +64,6 @@ button{font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;letter-spa
 #english-out.empty{color:var(--muted);font-style:italic;font-size:0.9rem;}
 .translate-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 #translate-btn:disabled{opacity:0.4;cursor:not-allowed;}
-.spinner{display:none;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.6s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
 .status{margin-top:20px;padding:12px 18px;background:#0d1117;border:1px solid var(--border);border-radius:10px;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:0.04em;}
 .status span{color:var(--accent2);}
 footer{position:relative;z-index:1;text-align:center;padding:32px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);border-top:1px solid var(--border);}
@@ -75,18 +73,16 @@ footer{position:relative;z-index:1;text-align:center;padding:32px;font-family:'D
 
 <header>
   <div class="logo">Sign<span>Bridge</span></div>
-  <div class="badge">BETA v0.1</div>
+  <div class="badge">BETA v0.2</div>
 </header>
 
 <main>
   <div class="hero">
     <h1>Sign in. Read in <em>English.</em></h1>
-    <p>// real-time ASL hand tracking + AI language correction — runs in your browser</p>
+    <p>// real-time ASL hand tracking — runs entirely in your browser, no AI needed</p>
   </div>
 
   <div class="grid">
-
-    <!-- LEFT: Webcam -->
     <div class="panel">
       <div class="panel-head">
         <div class="dot" id="cam-dot"></div>
@@ -96,8 +92,8 @@ footer{position:relative;z-index:1;text-align:center;padding:32px;font-family:'D
         <video id="video" playsinline></video>
         <canvas id="overlay"></canvas>
         <div class="cam-idle" id="cam-idle">
-          <svg class="cam-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3d5468" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
           </svg>
           <p>click start to enable camera</p>
         </div>
@@ -110,10 +106,7 @@ footer{position:relative;z-index:1;text-align:center;padding:32px;font-family:'D
       </div>
     </div>
 
-    <!-- RIGHT: Output -->
     <div class="right-col">
-
-      <!-- Detected letters -->
       <div class="panel">
         <div class="panel-head">
           <div class="dot" id="hand-dot"></div>
@@ -124,7 +117,6 @@ footer{position:relative;z-index:1;text-align:center;padding:32px;font-family:'D
         </div>
       </div>
 
-      <!-- Confidence -->
       <div class="panel">
         <div class="panel-head">
           <div class="dot"></div>
@@ -139,100 +131,153 @@ footer{position:relative;z-index:1;text-align:center;padding:32px;font-family:'D
         </div>
       </div>
 
-      <!-- English output -->
       <div class="panel">
         <div class="panel-head">
-          <div class="dot" id="ai-dot"></div>
-          <span>english translation</span>
+          <div class="dot" id="out-dot"></div>
+          <span>english output</span>
         </div>
         <div class="english-body">
-          <div id="english-out" class="empty">Translation will appear here after you sign a sentence and press Translate...</div>
+          <div id="english-out" class="empty">Translated sentence will appear here...</div>
           <div class="translate-row">
             <button class="btn-green" id="translate-btn" onclick="translateText()" disabled>Translate</button>
-            <div class="spinner" id="spinner"></div>
             <button class="btn-ghost" onclick="copyOutput()">Copy</button>
+            <button class="btn-ghost" onclick="speakOutput()">Speak</button>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- Status bar -->
-  <div class="status" id="status-bar">
-    status: <span>ready — waiting for camera</span>
-  </div>
+  <div class="status" id="status-bar">status: <span>ready — click Start Camera to begin</span></div>
 </main>
 
-<footer>
-  SignBridge &nbsp;|&nbsp; MediaPipe Hands + AI correction &nbsp;|&nbsp; rickygole.github.io/asl-translator
-</footer>
+<footer>SignBridge &nbsp;|&nbsp; MediaPipe Hands &nbsp;|&nbsp; rickygole.github.io/asl-translator</footer>
 
 <script>
 // ─── State ────────────────────────────────────────────────────
-let stream = null;
-let camera = null;
-let hands = null;
-let detectedLetters = [];
-let lastLetter = '';
-let letterBuffer = '';
-let holdFrames = 0;
-const HOLD_THRESHOLD = 18; // frames a sign must be held
+let stream = null, camera = null, hands = null;
+let letterBuffer = '', lastLetter = '', holdFrames = 0;
+const HOLD_THRESHOLD = 18;
 
-// ─── ASL Alphabet Classifier ──────────────────────────────────
-// Simplified rule-based classifier using landmark geometry
-// Replace with a trained TF.js model for higher accuracy
-function classifyASL(landmarks) {
-  if (!landmarks || landmarks.length === 0) return null;
+// ─── Rule-based post-processor ────────────────────────────────
+function removeDupes(str) {
+  // Collapse runs of same letter: HHEELLOO -> HELO
+  return str.replace(/(.)\1+/g, '$1');
+}
 
-  const lm = landmarks;
-  // Key landmarks: 0=wrist, 4=thumb tip, 8=index tip,
-  // 12=middle tip, 16=ring tip, 20=pinky tip
-  // 5=index base, 9=middle base, 13=ring base, 17=pinky base
+const abbreviations = {
+  'U': 'YOU', 'R': 'ARE', 'Y': 'WHY', 'C': 'SEE',
+  'B': 'BE',  'N': 'AND', 'W': 'WITH', 'UR': 'YOUR',
+  'RN': 'RIGHT NOW', 'BRB': 'BE RIGHT BACK',
+  'IDK': 'I DON\'T KNOW', 'IMO': 'IN MY OPINION',
+  'BTW': 'BY THE WAY', 'NVM': 'NEVER MIND',
+  'TY': 'THANK YOU', 'PLZ': 'PLEASE', 'PLS': 'PLEASE',
+  'TMR': 'TOMORROW', 'TNT': 'TONIGHT', 'WYD': 'WHAT ARE YOU DOING',
+  'HRU': 'HOW ARE YOU', 'ILY': 'I LOVE YOU',
+  'OMG': 'OH MY GOD', 'LOL': 'LAUGHING OUT LOUD',
+  'WTF': 'WHAT THE HECK', 'SMH': 'SHAKING MY HEAD',
+  'FYI': 'FOR YOUR INFORMATION', 'ASAP': 'AS SOON AS POSSIBLE',
+  'AKA': 'ALSO KNOWN AS', 'ETA': 'ESTIMATED TIME OF ARRIVAL',
+  'DIY': 'DO IT YOURSELF', 'FAQ': 'FREQUENTLY ASKED QUESTIONS',
+};
 
-  const thumbTip   = lm[4];
-  const indexTip   = lm[8];
-  const middleTip  = lm[12];
-  const ringTip    = lm[16];
-  const pinkyTip   = lm[20];
-  const indexBase  = lm[5];
-  const middleBase = lm[9];
-  const ringBase   = lm[13];
-  const pinkyBase  = lm[17];
-  const wrist      = lm[0];
+// Common ASL fingerspelled words dictionary
+const dictionary = {
+  // Greetings
+  'HLO': 'HELLO', 'HI': 'HI', 'HEY': 'HEY',
+  'GD': 'GOOD', 'GDM': 'GOOD MORNING', 'GDN': 'GOOD NIGHT',
+  'GDA': 'GOOD AFTERNOON', 'GDE': 'GOOD EVENING',
+  'BYE': 'BYE', 'CYA': 'SEE YOU LATER',
+  // Common words
+  'HLP': 'HELP', 'TNK': 'THANK', 'SRY': 'SORRY',
+  'WLC': 'WELCOME', 'PLS': 'PLEASE', 'NP': 'NO PROBLEM',
+  'OK': 'OKAY', 'YS': 'YES', 'NO': 'NO',
+  'MY': 'MY', 'NM': 'NAME', 'WH': 'WHAT',
+  'WR': 'WHERE', 'WN': 'WHEN', 'HW': 'HOW',
+  'WO': 'WHO', 'WY': 'WHY', 'CN': 'CAN',
+  'ND': 'NEED', 'LK': 'LIKE', 'LV': 'LOVE',
+  'GT': 'GET', 'GV': 'GIVE', 'CM': 'COME',
+  'GO': 'GO', 'ST': 'STOP', 'WK': 'WORK',
+  'EAT': 'EAT', 'DRK': 'DRINK', 'SLP': 'SLEEP',
+  'LD': 'LOUD', 'QT': 'QUIET', 'FN': 'FINE',
+  'GD': 'GOOD', 'BD': 'BAD', 'BG': 'BIG',
+  'SM': 'SMALL', 'HT': 'HOT', 'CLD': 'COLD',
+  'FST': 'FAST', 'SLW': 'SLOW', 'NW': 'NEW',
+  'OLD': 'OLD', 'YNG': 'YOUNG',
+  // Numbers spelled out
+  'ONE': 'ONE', 'TWO': 'TWO', 'THR': 'THREE',
+  'FOR': 'FOUR', 'FIV': 'FIVE', 'SIX': 'SIX',
+  'SVN': 'SEVEN', 'EGT': 'EIGHT', 'NIN': 'NINE',
+  'TEN': 'TEN',
+  // Places
+  'SCL': 'SCHOOL', 'HM': 'HOME', 'WRK': 'WORK',
+  'HSP': 'HOSPITAL', 'STR': 'STORE', 'PRK': 'PARK',
+  // People
+  'MOM': 'MOM', 'DAD': 'DAD', 'SIS': 'SISTER',
+  'BRO': 'BROTHER', 'FRD': 'FRIEND', 'TCH': 'TEACHER',
+  'DCT': 'DOCTOR',
+};
 
-  // Is finger extended? (tip higher than base = lower y value)
+function applyRules(raw) {
+  // Step 1: split into words by spaces
+  let words = raw.trim().toUpperCase().split(/\s+/).filter(Boolean);
+
+  // Step 2: for each word, remove consecutive duplicate letters
+  words = words.map(w => removeDupes(w));
+
+  // Step 3: expand abbreviations and dictionary matches
+  words = words.map(w => {
+    if (dictionary[w]) return dictionary[w];
+    if (abbreviations[w]) return abbreviations[w];
+    return w;
+  });
+
+  // Step 4: join and apply sentence rules
+  let sentence = words.join(' ');
+
+  // Capitalize first letter, lowercase rest
+  sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1).toLowerCase();
+
+  // Fix proper nouns that should stay capitalized (I)
+  sentence = sentence.replace(/\b i \b/g, ' I ');
+  sentence = sentence.replace(/^i /, 'I ');
+
+  // Add period if missing
+  if (sentence && !/[.!?]$/.test(sentence)) sentence += '.';
+
+  return sentence;
+}
+
+// ─── ASL Classifier ───────────────────────────────────────────
+function classifyASL(lm) {
+  if (!lm || lm.length === 0) return null;
+  const indexTip=lm[8], middleTip=lm[12], ringTip=lm[16], pinkyTip=lm[20];
+  const indexBase=lm[5], middleBase=lm[9], ringBase=lm[13], pinkyBase=lm[17];
+  const thumbTip=lm[4];
+
   const indexUp  = indexTip.y  < indexBase.y  - 0.04;
   const middleUp = middleTip.y < middleBase.y - 0.04;
   const ringUp   = ringTip.y   < ringBase.y   - 0.04;
   const pinkyUp  = pinkyTip.y  < pinkyBase.y  - 0.04;
-
-  // Thumb extended sideways
   const thumbOut = Math.abs(thumbTip.x - lm[3].x) > 0.06;
 
-  // Simple letter rules (subset of ASL alphabet)
-  if (!indexUp && !middleUp && !ringUp && !pinkyUp && thumbOut) return {letter:'A', conf:0.82};
-  if (indexUp && middleUp && ringUp && pinkyUp && thumbOut) return {letter:'B', conf:0.80};
-  if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbOut) return {letter:'S', conf:0.75};
-  if (indexUp && !middleUp && !ringUp && !pinkyUp) return {letter:'D', conf:0.78};
-  if (indexUp && middleUp && !ringUp && !pinkyUp) return {letter:'U', conf:0.76};
-  if (indexUp && middleUp && ringUp && !pinkyUp && !thumbOut) return {letter:'W', conf:0.74};
-  if (!indexUp && !middleUp && !ringUp && pinkyUp) return {letter:'I', conf:0.77};
-  if (indexUp && !middleUp && !ringUp && pinkyUp) return {letter:'Y', conf:0.75};
-  if (indexUp && middleUp && !ringUp && !pinkyUp && Math.abs(indexTip.x - middleTip.x) > 0.05) return {letter:'V', conf:0.74};
-
+  if (!indexUp && !middleUp && !ringUp && !pinkyUp && thumbOut)  return {letter:'A', conf:0.82};
+  if (indexUp && middleUp && ringUp && pinkyUp && thumbOut)       return {letter:'B', conf:0.80};
+  if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbOut)  return {letter:'S', conf:0.75};
+  if (indexUp && !middleUp && !ringUp && !pinkyUp)                return {letter:'D', conf:0.78};
+  if (indexUp && middleUp && !ringUp && !pinkyUp)                 return {letter:'U', conf:0.76};
+  if (indexUp && middleUp && ringUp && !pinkyUp && !thumbOut)     return {letter:'W', conf:0.74};
+  if (!indexUp && !middleUp && !ringUp && pinkyUp)                return {letter:'I', conf:0.77};
+  if (indexUp && !middleUp && !ringUp && pinkyUp)                 return {letter:'Y', conf:0.75};
+  if (indexUp && middleUp && !ringUp && !pinkyUp &&
+      Math.abs(indexTip.x - middleTip.x) > 0.05)                 return {letter:'V', conf:0.74};
   return null;
 }
 
-// ─── MediaPipe Setup ──────────────────────────────────────────
+// ─── MediaPipe ────────────────────────────────────────────────
 function initHands() {
   hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  hands.setOptions({
-    maxNumHands: 1,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.75,
-    minTrackingConfidence: 0.6
-  });
+  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.75, minTrackingConfidence:0.6});
   hands.onResults(onResults);
   setStatus('MediaPipe loaded — camera ready');
 }
@@ -240,21 +285,18 @@ function initHands() {
 function onResults(results) {
   const canvas = document.getElementById('overlay');
   const video  = document.getElementById('video');
-  canvas.width  = video.videoWidth  || 640;
+  canvas.width = video.videoWidth || 640;
   canvas.height = video.videoHeight || 480;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-    const landmarks = results.multiHandLandmarks[0];
-
-    // Draw skeleton
-    drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color:'rgba(0,229,160,0.5)', lineWidth:2});
-    drawLandmarks(ctx, landmarks, {color:'#00e5a0', lineWidth:1, radius:3});
-
+  if (results.multiHandLandmarks?.length > 0) {
+    const lm = results.multiHandLandmarks[0];
+    drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'rgba(0,229,160,0.5)', lineWidth:2});
+    drawLandmarks(ctx, lm, {color:'#00e5a0', lineWidth:1, radius:3});
     document.getElementById('hand-dot').classList.add('on');
 
-    const result = classifyASL(landmarks);
+    const result = classifyASL(lm);
     if (result) {
       updateConfidence(result.letter, result.conf);
       holdFrames++;
@@ -266,10 +308,7 @@ function onResults(results) {
     } else {
       updateConfidence('—', 0);
       holdFrames = 0;
-      if (lastLetter !== '') {
-        addLetter(' ');
-        lastLetter = '';
-      }
+      if (lastLetter !== '') { addLetter(' '); lastLetter = ''; }
     }
   } else {
     document.getElementById('hand-dot').classList.remove('on');
@@ -283,18 +322,16 @@ function addLetter(ch) {
   if (ch === ' ' && letterBuffer.endsWith(' ')) return;
   letterBuffer += ch;
   renderLetters();
-  if (letterBuffer.trim().length > 0) {
-    document.getElementById('translate-btn').disabled = false;
-  }
+  if (letterBuffer.trim()) document.getElementById('translate-btn').disabled = false;
 }
 
 function renderLetters() {
-  const display = document.getElementById('letters-display');
+  const d = document.getElementById('letters-display');
   if (!letterBuffer.trim()) {
-    display.innerHTML = '<span class="hint">letters appear here as you sign...</span>';
+    d.innerHTML = '<span class="hint">letters appear here as you sign...</span>';
     return;
   }
-  display.innerHTML = letterBuffer.split('').map(ch =>
+  d.innerHTML = letterBuffer.split('').map(ch =>
     ch === ' '
       ? '<span style="width:12px;display:inline-block"></span>'
       : `<span class="chip">${ch}</span>`
@@ -302,11 +339,9 @@ function renderLetters() {
 }
 
 function clearAll() {
-  letterBuffer = '';
-  lastLetter = '';
-  detectedLetters = [];
+  letterBuffer = ''; lastLetter = ''; holdFrames = 0;
   renderLetters();
-  document.getElementById('english-out').textContent = 'Translation will appear here after you sign a sentence and press Translate...';
+  document.getElementById('english-out').textContent = 'Translated sentence will appear here...';
   document.getElementById('english-out').className = 'empty';
   document.getElementById('translate-btn').disabled = true;
   updateConfidence('—', 0);
@@ -318,6 +353,19 @@ function updateConfidence(letter, conf) {
   const pct = Math.round(conf * 100);
   document.getElementById('conf-pct').textContent = pct + '%';
   document.getElementById('conf-bar').style.width = pct + '%';
+}
+
+// ─── Translation (rule-based + dictionary, no AI) ─────────────
+function translateText() {
+  const raw = letterBuffer.trim();
+  if (!raw) return;
+  const result = applyRules(raw);
+  const out = document.getElementById('english-out');
+  out.className = '';
+  out.textContent = result;
+  document.getElementById('out-dot').classList.add('on');
+  setTimeout(() => document.getElementById('out-dot').classList.remove('on'), 1500);
+  setStatus('translation complete — rule-based processing applied');
 }
 
 // ─── Camera ───────────────────────────────────────────────────
@@ -333,9 +381,7 @@ async function startCamera() {
     document.getElementById('cam-label').textContent = 'camera live';
     document.getElementById('start-btn').style.display = 'none';
     document.getElementById('stop-btn').style.display = '';
-
     if (!hands) initHands();
-
     camera = new Camera(video, {
       onFrame: async () => { await hands.send({image: video}); },
       width: 640, height: 480
@@ -360,57 +406,10 @@ function stopCamera() {
   setStatus('camera stopped');
 }
 
-// ─── Translation ───────────────────────────────────────────────
-// IMPORTANT: Replace WORKER_URL with your Cloudflare Worker URL after deploying it
-const WORKER_URL = 'https://YOUR_WORKER.YOUR_SUBDOMAIN.workers.dev';
-
-async function translateText() {
-  const raw = letterBuffer.trim();
-  if (!raw) return;
-
-  const btn = document.getElementById('translate-btn');
-  const spinner = document.getElementById('spinner');
-  const out = document.getElementById('english-out');
-  const dot = document.getElementById('ai-dot');
-
-  btn.disabled = true;
-  spinner.style.display = 'block';
-  dot.classList.add('on');
-  out.className = '';
-  out.textContent = 'Translating...';
-  setStatus('calling AI translation...');
-
-  try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({text: raw})
-    });
-    const data = await res.json();
-    out.textContent = data.result || 'No response received.';
-    setStatus('translation complete');
-  } catch(e) {
-    // Fallback: basic cleanup without AI
-    out.textContent = fallbackCleanup(raw);
-    setStatus('AI unavailable — showing basic cleanup (configure WORKER_URL to enable AI)');
-  } finally {
-    btn.disabled = false;
-    spinner.style.display = 'none';
-    dot.classList.remove('on');
-  }
-}
-
-function fallbackCleanup(raw) {
-  // Very basic: capitalize first letter, trim
-  return raw.toLowerCase().trim()
-    .replace(/\b\w/g, c => c.toUpperCase())
-    .replace(/\s+/g, ' ');
-}
-
 // ─── Utilities ────────────────────────────────────────────────
 function speakOutput() {
   const text = document.getElementById('english-out').textContent;
-  if (!text || text.includes('Translation will appear')) return;
+  if (!text || text.includes('appear here')) return;
   const utt = new SpeechSynthesisUtterance(text);
   utt.rate = 0.95;
   speechSynthesis.speak(utt);
@@ -424,9 +423,6 @@ function copyOutput() {
 function setStatus(msg) {
   document.getElementById('status-bar').innerHTML = `status: <span>${msg}</span>`;
 }
-
-// Init
-setStatus('ready — click Start Camera to begin');
 </script>
 </body>
 </html>
