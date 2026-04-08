@@ -3,391 +3,877 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SignBridge — ASL to English</title>
+<title>SignCoach — ASL Learning & Translation</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/holistic.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
 <style>
-:root {
-  --bg:#07090d; --card:#111820; --border:#1c2733;
-  --accent:#00e5a0; --accent2:#0ea5e9;
-  --text:#e2eaf4; --muted:#3d5468; --warn:#f97316;
+:root{
+  --bg:#07090d;--surface:#0d1117;--card:#111820;--border:#1c2733;
+  --accent:#00e5a0;--accent2:#0ea5e9;--warn:#f97316;--danger:#ef4444;
+  --text:#e2eaf4;--muted:#3d5468;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;}
 body::before{
-  content:'';position:fixed;inset:0;
-  background-image:linear-gradient(rgba(28,39,51,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(28,39,51,0.5) 1px,transparent 1px);
-  background-size:52px 52px;pointer-events:none;z-index:0;
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(28,39,51,0.45) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(28,39,51,0.45) 1px,transparent 1px);
+  background-size:52px 52px;
 }
-header{position:relative;z-index:10;padding:22px 36px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.logo{font-size:1.35rem;font-weight:800;letter-spacing:-0.03em;}
+
+/* ── Header ── */
+header{
+  position:relative;z-index:10;
+  padding:16px 28px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+.logo{font-size:1.25rem;font-weight:800;letter-spacing:-0.03em;}
 .logo span{color:var(--accent);}
-.badge{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--accent);border:1px solid rgba(0,229,160,0.35);padding:4px 12px;border-radius:4px;letter-spacing:0.1em;}
-main{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:44px 24px 80px;}
-.hero{text-align:center;margin-bottom:44px;}
-.hero h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;letter-spacing:-0.04em;line-height:1.05;margin-bottom:12px;}
+.lang-bar{display:flex;gap:6px;flex-wrap:wrap;}
+.lang-btn{
+  font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.08em;
+  padding:4px 10px;border-radius:4px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.lang-btn:hover{color:var(--text);border-color:var(--muted);}
+.lang-btn.active{background:rgba(0,229,160,0.08);border-color:rgba(0,229,160,0.4);color:var(--accent);}
+
+/* ── Layout ── */
+main{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:20px 16px 60px;}
+.hero{text-align:center;margin-bottom:24px;}
+.hero h1{font-size:clamp(1.8rem,4vw,3rem);font-weight:800;letter-spacing:-0.04em;line-height:1.05;margin-bottom:8px;}
 .hero h1 em{font-style:normal;color:var(--accent);}
-.hero p{font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--muted);letter-spacing:0.04em;}
-.grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start;}
-@media(max-width:720px){.grid{grid-template-columns:1fr;}}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
-.panel-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.hero p{font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--muted);letter-spacing:0.04em;}
+
+.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:start;}
+@media(max-width:780px){.grid{grid-template-columns:1fr;}}
+
+/* ── Panel ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.ph{
+  padding:10px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  font-family:'DM Mono',monospace;font-size:0.65rem;
+  letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;}
 .dot.on{background:var(--accent);animation:blink 2s ease-in-out infinite;}
+.dot.warn{background:var(--warn);}
+.dot.blue{background:var(--accent2);}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── Camera ── */
 .cam-wrap{position:relative;aspect-ratio:4/3;background:#050709;overflow:hidden;}
 video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;}
 canvas#overlay{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;}
-.cam-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-.cam-idle p{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);letter-spacing:0.06em;}
-.cam-controls{padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-button{font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;letter-spacing:0.05em;padding:9px 20px;border-radius:8px;border:none;cursor:pointer;transition:all 0.15s;}
-.btn-green{background:var(--accent);color:#07090d;}
-.btn-green:hover{background:#00ffb2;}
+.cam-idle{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+}
+.cam-idle p{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:0.06em;}
+
+/* Loading overlay */
+.loading-overlay{
+  position:absolute;inset:0;background:rgba(7,9,13,0.85);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:5;
+}
+.loading-overlay.show{display:flex;}
+.spinner{
+  width:32px;height:32px;border:2px solid var(--border);
+  border-top-color:var(--accent);border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay p{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--accent);letter-spacing:0.06em;}
+
+/* Light warning */
+.light-warn{
+  position:absolute;top:8px;right:8px;z-index:4;
+  background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);
+  color:var(--warn);font-family:'DM Mono',monospace;font-size:0.62rem;
+  padding:3px 8px;border-radius:4px;letter-spacing:0.06em;display:none;
+}
+
+/* Tracking badges */
+.track-badges{
+  position:absolute;bottom:8px;left:8px;z-index:4;
+  display:flex;gap:5px;flex-wrap:wrap;
+}
+.tbadge{
+  font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.06em;
+  padding:2px 7px;border-radius:3px;border:1px solid;opacity:0.4;transition:opacity 0.3s;
+}
+.tbadge.active{opacity:1;}
+.tbadge.lh{border-color:var(--accent);color:var(--accent);}
+.tbadge.rh{border-color:var(--accent2);color:var(--accent2);}
+.tbadge.fc{border-color:#a78bfa;color:#a78bfa;}
+
+.cam-controls{padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+button{
+  font-family:'Syne',sans-serif;font-weight:700;font-size:0.75rem;
+  letter-spacing:0.05em;padding:8px 18px;border-radius:7px;border:none;
+  cursor:pointer;transition:all 0.15s;
+}
+.btn-g{background:var(--accent);color:#07090d;}
+.btn-g:hover{background:#00ffb2;}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
 .btn-ghost:hover{color:var(--text);border-color:var(--muted);}
-.btn-blue{background:var(--accent2);color:#fff;}
-.btn-blue:hover{background:#38bdf8;}
-.right-col{display:flex;flex-direction:column;gap:18px;}
-.letters-body{padding:20px 18px;min-height:90px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
-.chip{font-family:'DM Mono',monospace;font-size:1.3rem;font-weight:500;color:var(--accent);background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.18);border-radius:6px;padding:3px 11px;animation:popIn 0.12s ease;}
-@keyframes popIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-.hint{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);}
-.conf-body{padding:16px 18px;}
-.conf-label{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;margin-bottom:8px;display:flex;justify-content:space-between;}
-.bar-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-.bar-fill{height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 0.2s ease;}
-.english-body{padding:22px 18px;min-height:120px;display:flex;flex-direction:column;gap:14px;}
-#english-out{font-size:1.1rem;line-height:1.65;color:var(--text);min-height:60px;}
-#english-out.empty{color:var(--muted);font-style:italic;font-size:0.9rem;}
-.translate-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-#translate-btn:disabled{opacity:0.4;cursor:not-allowed;}
-.status{margin-top:20px;padding:12px 18px;background:#0d1117;border:1px solid var(--border);border-radius:10px;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:0.04em;}
-.status span{color:var(--accent2);}
-footer{position:relative;z-index:1;text-align:center;padding:32px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);border-top:1px solid var(--border);}
+.btn-b{background:var(--accent2);color:#fff;}
+.btn-b:hover{background:#38bdf8;}
+.btn-p{background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);}
+.btn-p:hover{background:rgba(167,139,250,0.25);}
+
+/* ── Right column ── */
+.right-col{display:flex;flex-direction:column;gap:14px;}
+
+/* Word card */
+.word-body{padding:16px;}
+.diff-row{display:flex;gap:5px;margin-bottom:10px;}
+.diff-pill{
+  font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;
+  padding:3px 9px;border-radius:4px;border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.diff-pill:hover{color:var(--text);}
+.diff-pill.active{background:rgba(0,229,160,0.08);border-color:rgba(0,229,160,0.35);color:var(--accent);}
+.word-main{font-size:2.2rem;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;margin-bottom:4px;}
+.word-trans{font-size:0.85rem;color:var(--accent2);margin-bottom:6px;font-family:'DM Mono',monospace;}
+.word-native{font-size:1rem;color:#a78bfa;margin-bottom:10px;}
+.word-hint{
+  background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.1);
+  border-radius:7px;padding:10px 12px;
+  font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);
+  line-height:1.6;margin-bottom:10px;
+}
+.word-hint b{color:var(--accent);font-weight:500;}
+.face-hint{
+  background:rgba(167,139,250,0.04);border:1px solid rgba(167,139,250,0.15);
+  border-radius:7px;padding:8px 12px;
+  font-family:'DM Mono',monospace;font-size:0.68rem;color:#a78bfa;line-height:1.5;
+}
+.word-nav{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
+
+/* Score panel */
+.score-body{padding:14px;}
+.score-top{display:flex;align-items:baseline;gap:8px;margin-bottom:12px;}
+.score-num{font-size:2.8rem;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;line-height:1;}
+.score-label{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);}
+
+/* Finger bars */
+.finger-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:10px;}
+.fbox{background:var(--surface);border-radius:5px;padding:6px 4px;text-align:center;}
+.fname{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-bottom:4px;letter-spacing:0.04em;}
+.fbar{height:32px;background:var(--border);border-radius:3px;position:relative;overflow:hidden;}
+.fbar-fill{position:absolute;bottom:0;width:100%;border-radius:3px;transition:height 0.25s ease;}
+.fbar-fill.good{background:rgba(0,229,160,0.5);}
+.fbar-fill.warn{background:rgba(249,115,22,0.5);}
+.fbar-fill.off{background:rgba(239,68,68,0.4);}
+
+/* Face score */
+.face-score-row{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;
+}
+.fsc{background:var(--surface);border-radius:6px;padding:7px;text-align:center;}
+.fsc-val{font-size:1rem;font-weight:700;color:var(--text);font-family:'Syne',sans-serif;}
+.fsc-lbl{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:2px;}
+
+.feedback-box{
+  background:var(--surface);border-radius:7px;padding:9px 12px;
+  font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);line-height:1.6;
+}
+.feedback-box .ok{color:var(--accent);}
+.feedback-box .err{color:var(--warn);}
+.feedback-box .face-fb{color:#a78bfa;}
+
+/* Progress panel */
+.prog-body{padding:14px;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px;}
+.stat{background:var(--surface);border-radius:7px;padding:9px 10px;}
+.stat-n{font-size:1.4rem;font-weight:800;color:var(--text);font-family:'Syne',sans-serif;}
+.stat-l{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);margin-top:2px;}
+.streak-row{display:flex;gap:4px;margin-bottom:10px;}
+.sday{
+  width:22px;height:22px;border-radius:4px;background:var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);
+}
+.sday.done{background:rgba(0,229,160,0.12);color:var(--accent);border:1px solid rgba(0,229,160,0.25);}
+.hist-list{display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto;}
+.hist-row{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--surface);border-radius:5px;padding:5px 9px;
+}
+.hist-word{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--text);}
+.hist-score{font-family:'DM Mono',monospace;font-size:0.7rem;}
+.hs-hi{color:var(--accent);}
+.hs-mid{color:var(--warn);}
+.hs-lo{color:var(--danger);}
+
+/* Status bar */
+.status-bar{
+  margin-top:14px;padding:10px 16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:9px;
+  font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.status-bar span{color:var(--accent2);}
+.keypoint-count{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">Sign<span>Bridge</span></div>
-  <div class="badge">BETA v0.2</div>
+  <div class="logo">Sign<span>Coach</span></div>
+  <div class="lang-bar" id="lang-bar"></div>
 </header>
 
 <main>
   <div class="hero">
-    <h1>Sign in. Read in <em>English.</em></h1>
-    <p>// real-time ASL hand tracking — runs entirely in your browser, no AI needed</p>
+    <h1>Learn ASL. Hear it in <em>any language.</em></h1>
+    <p>// both hands + face tracking · real-time pose scoring · 12 languages · runs in your browser</p>
   </div>
 
   <div class="grid">
+
+    <!-- LEFT: Camera -->
     <div class="panel">
-      <div class="panel-head">
+      <div class="ph">
         <div class="dot" id="cam-dot"></div>
         <span id="cam-label">camera offline</span>
+        <div style="margin-left:auto;font-size:0.6rem;" id="fps-display">0 fps</div>
       </div>
       <div class="cam-wrap">
         <video id="video" playsinline></video>
         <canvas id="overlay"></canvas>
         <div class="cam-idle" id="cam-idle">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3d5468" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3d5468" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
           </svg>
-          <p>click start to enable camera</p>
+          <p>click start camera to begin</p>
+        </div>
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="spinner"></div>
+          <p>loading holistic model...</p>
+        </div>
+        <div class="light-warn" id="light-warn">LOW LIGHT</div>
+        <div class="track-badges">
+          <div class="tbadge lh" id="badge-lh">L.HAND</div>
+          <div class="tbadge rh" id="badge-rh">R.HAND</div>
+          <div class="tbadge fc" id="badge-fc">FACE</div>
         </div>
       </div>
       <div class="cam-controls">
-        <button class="btn-green" id="start-btn" onclick="startCamera()">Start camera</button>
+        <button class="btn-g" id="start-btn" onclick="startCamera()">Start camera</button>
         <button class="btn-ghost" id="stop-btn" onclick="stopCamera()" style="display:none">Stop</button>
-        <button class="btn-ghost" onclick="clearAll()">Clear</button>
-        <button class="btn-blue" onclick="speakOutput()">Speak</button>
+        <button class="btn-ghost" onclick="clearSession()">Clear</button>
+        <button class="btn-b" onclick="speakWord()" style="margin-left:auto">Speak word</button>
       </div>
     </div>
 
+    <!-- RIGHT column -->
     <div class="right-col">
-      <div class="panel">
-        <div class="panel-head">
-          <div class="dot" id="hand-dot"></div>
-          <span>detected letters</span>
-        </div>
-        <div class="letters-body" id="letters-display">
-          <span class="hint">letters appear here as you sign...</span>
-        </div>
-      </div>
 
+      <!-- Current word -->
       <div class="panel">
-        <div class="panel-head">
-          <div class="dot"></div>
-          <span>confidence</span>
-        </div>
-        <div class="conf-body">
-          <div class="conf-label">
-            <span id="current-sign">—</span>
-            <span id="conf-pct">0%</span>
+        <div class="ph"><div class="dot blue"></div><span>current sign</span></div>
+        <div class="word-body">
+          <div class="diff-row">
+            <div class="diff-pill active" onclick="setDifficulty('beginner',this)">Beginner</div>
+            <div class="diff-pill" onclick="setDifficulty('intermediate',this)">Intermediate</div>
+            <div class="diff-pill" onclick="setDifficulty('advanced',this)">Advanced</div>
           </div>
-          <div class="bar-track"><div class="bar-fill" id="conf-bar"></div></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <div class="dot" id="out-dot"></div>
-          <span>english output</span>
-        </div>
-        <div class="english-body">
-          <div id="english-out" class="empty">Translated sentence will appear here...</div>
-          <div class="translate-row">
-            <button class="btn-green" id="translate-btn" onclick="translateText()" disabled>Translate</button>
-            <button class="btn-ghost" onclick="copyOutput()">Copy</button>
-            <button class="btn-ghost" onclick="speakOutput()">Speak</button>
+          <div class="word-main" id="word-english">HELLO</div>
+          <div class="word-trans" id="word-trans">नमस्ते</div>
+          <div class="word-native" id="word-native"></div>
+          <div class="word-hint" id="word-hint">Loading hint...</div>
+          <div class="face-hint" id="face-hint"></div>
+          <div class="word-nav">
+            <button class="btn-ghost" onclick="prevWord()">← Prev</button>
+            <button class="btn-g" onclick="nextWord()">Next →</button>
+            <button class="btn-p" onclick="speakWord()">Speak</button>
+            <button class="btn-ghost" onclick="scoreCurrentPose()" style="margin-left:auto">Score pose</button>
           </div>
         </div>
       </div>
+
+      <!-- Score -->
+      <div class="panel">
+        <div class="ph"><div class="dot" id="score-dot"></div><span>pose score</span></div>
+        <div class="score-body">
+          <div class="score-top">
+            <div class="score-num" id="score-num">—</div>
+            <div class="score-label">similarity score</div>
+          </div>
+          <div class="finger-grid" id="finger-grid"></div>
+          <div class="face-score-row" id="face-score-row"></div>
+          <div class="feedback-box" id="feedback-box">Start camera and sign the word shown above, then press Score Pose.</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="panel">
+        <div class="ph"><div class="dot" id="prog-dot"></div><span>progress</span></div>
+        <div class="prog-body">
+          <div class="stat-grid">
+            <div class="stat"><div class="stat-n" id="stat-words">0</div><div class="stat-l">words tried</div></div>
+            <div class="stat"><div class="stat-n" id="stat-mastered">0</div><div class="stat-l">mastered</div></div>
+            <div class="stat"><div class="stat-n" id="stat-avg">—</div><div class="stat-l">avg score</div></div>
+          </div>
+          <div class="streak-row" id="streak-row"></div>
+          <div class="hist-list" id="hist-list"><div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);">No attempts yet.</div></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <div class="status" id="status-bar">status: <span>ready — click Start Camera to begin</span></div>
+  <div class="status-bar">
+    <div>status: <span id="status-msg">ready — click Start Camera</span></div>
+    <div class="keypoint-count" id="kp-count">543 keypoints available (33 pose + 468 face + 21×2 hands)</div>
+  </div>
 </main>
 
-<footer>SignBridge &nbsp;|&nbsp; MediaPipe Hands &nbsp;|&nbsp; rickygole.github.io/asl-translator</footer>
-
 <script>
-// ─── State ────────────────────────────────────────────────────
-let stream = null, camera = null, hands = null;
-let letterBuffer = '', lastLetter = '', holdFrames = 0;
-const HOLD_THRESHOLD = 18;
+// ══════════════════════════════════════════════════════
+// LANGUAGES
+// ══════════════════════════════════════════════════════
+const LANGS = [
+  {code:'en-US', label:'English',   flag:'EN'},
+  {code:'ne-NP', label:'Nepali',    flag:'NE'},
+  {code:'hi-IN', label:'Hindi',     flag:'HI'},
+  {code:'es-ES', label:'Español',   flag:'ES'},
+  {code:'fr-FR', label:'Français',  flag:'FR'},
+  {code:'ar-SA', label:'Arabic',    flag:'AR'},
+  {code:'zh-CN', label:'中文',      flag:'ZH'},
+  {code:'ja-JP', label:'日本語',    flag:'JA'},
+  {code:'ko-KR', label:'한국어',    flag:'KO'},
+  {code:'pt-BR', label:'Português', flag:'PT'},
+  {code:'de-DE', label:'Deutsch',   flag:'DE'},
+  {code:'it-IT', label:'Italiano',  flag:'IT'},
+];
+let activeLang = LANGS[1]; // default Nepali
 
-// ─── Rule-based post-processor ────────────────────────────────
-function removeDupes(str) {
-  // Collapse runs of same letter: HHEELLOO -> HELO
-  return str.replace(/(.)\1+/g, '$1');
-}
-
-const abbreviations = {
-  'U': 'YOU', 'R': 'ARE', 'Y': 'WHY', 'C': 'SEE',
-  'B': 'BE',  'N': 'AND', 'W': 'WITH', 'UR': 'YOUR',
-  'RN': 'RIGHT NOW', 'BRB': 'BE RIGHT BACK',
-  'IDK': 'I DON\'T KNOW', 'IMO': 'IN MY OPINION',
-  'BTW': 'BY THE WAY', 'NVM': 'NEVER MIND',
-  'TY': 'THANK YOU', 'PLZ': 'PLEASE', 'PLS': 'PLEASE',
-  'TMR': 'TOMORROW', 'TNT': 'TONIGHT', 'WYD': 'WHAT ARE YOU DOING',
-  'HRU': 'HOW ARE YOU', 'ILY': 'I LOVE YOU',
-  'OMG': 'OH MY GOD', 'LOL': 'LAUGHING OUT LOUD',
-  'WTF': 'WHAT THE HECK', 'SMH': 'SHAKING MY HEAD',
-  'FYI': 'FOR YOUR INFORMATION', 'ASAP': 'AS SOON AS POSSIBLE',
-  'AKA': 'ALSO KNOWN AS', 'ETA': 'ESTIMATED TIME OF ARRIVAL',
-  'DIY': 'DO IT YOURSELF', 'FAQ': 'FREQUENTLY ASKED QUESTIONS',
+// ══════════════════════════════════════════════════════
+// WORD DATABASE
+// ══════════════════════════════════════════════════════
+const WORDS = {
+  beginner: [
+    {
+      en:'HELLO',
+      translations:{'ne-NP':'नमस्ते','hi-IN':'नमस्ते','es-ES':'Hola','fr-FR':'Bonjour','ar-SA':'مرحبا','zh-CN':'你好','ja-JP':'こんにちは','ko-KR':'안녕하세요','pt-BR':'Olá','de-DE':'Hallo','it-IT':'Ciao','en-US':'Hello'},
+      hint:'Raise your <b>open hand</b> to forehead, palm outward. All fingers extended and together.',
+      faceHint:'Neutral expression. Slight smile optional.',
+      pose:{indexUp:true,middleUp:true,ringUp:true,pinkyUp:true,thumbOut:true,bothHands:false}
+    },
+    {
+      en:'THANK YOU',
+      translations:{'ne-NP':'धन्यवाद','hi-IN':'धन्यवाद','es-ES':'Gracias','fr-FR':'Merci','ar-SA':'شكراً','zh-CN':'谢谢','ja-JP':'ありがとう','ko-KR':'감사합니다','pt-BR':'Obrigado','de-DE':'Danke','it-IT':'Grazie','en-US':'Thank you'},
+      hint:'<b>Flat hand</b> touches chin/lips, then moves forward and down. Palm facing up at end.',
+      faceHint:'Warm, grateful expression. Slight nod.',
+      pose:{indexUp:true,middleUp:true,ringUp:true,pinkyUp:true,thumbOut:false,bothHands:false}
+    },
+    {
+      en:'PLEASE',
+      translations:{'ne-NP':'कृपया','hi-IN':'कृपया','es-ES':'Por favor','fr-FR':'S\'il vous plaît','ar-SA':'من فضلك','zh-CN':'请','ja-JP':'お願い','ko-KR':'부탁해요','pt-BR':'Por favor','de-DE':'Bitte','it-IT':'Per favore','en-US':'Please'},
+      hint:'<b>Flat hand</b> on chest, rub in circular motion clockwise.',
+      faceHint:'Polite, slightly pleading expression.',
+      pose:{indexUp:false,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:false,bothHands:false}
+    },
+    {
+      en:'YES',
+      translations:{'ne-NP':'हो','hi-IN':'हाँ','es-ES':'Sí','fr-FR':'Oui','ar-SA':'نعم','zh-CN':'是的','ja-JP':'はい','ko-KR':'예','pt-BR':'Sim','de-DE':'Ja','it-IT':'Sì','en-US':'Yes'},
+      hint:'Make a <b>fist</b> and nod it up and down like a head nodding.',
+      faceHint:'Nod head. Eyebrows slightly raised for yes/no question.',
+      pose:{indexUp:false,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:false,bothHands:false}
+    },
+    {
+      en:'NO',
+      translations:{'ne-NP':'होइन','hi-IN':'नहीं','es-ES':'No','fr-FR':'Non','ar-SA':'لا','zh-CN':'不','ja-JP':'いいえ','ko-KR':'아니요','pt-BR':'Não','de-DE':'Nein','it-IT':'No','en-US':'No'},
+      hint:'<b>Index and middle fingers</b> tap thumb twice like a mouth saying no.',
+      faceHint:'Shake head slightly. Firm expression.',
+      pose:{indexUp:true,middleUp:true,ringUp:false,pinkyUp:false,thumbOut:true,bothHands:false}
+    },
+    {
+      en:'HELP',
+      translations:{'ne-NP':'मद्दत','hi-IN':'मदद','es-ES':'Ayuda','fr-FR':'Aide','ar-SA':'مساعدة','zh-CN':'帮助','ja-JP':'助けて','ko-KR':'도움','pt-BR':'Ajuda','de-DE':'Hilfe','it-IT':'Aiuto','en-US':'Help'},
+      hint:'<b>Thumbs up</b> hand rests on flat palm of other hand. Both rise upward together.',
+      faceHint:'Concerned or urgent expression.',
+      pose:{indexUp:false,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:true,bothHands:true}
+    },
+    {
+      en:'GOOD',
+      translations:{'ne-NP':'राम्रो','hi-IN':'अच्छा','es-ES':'Bueno','fr-FR':'Bon','ar-SA':'جيد','zh-CN':'好','ja-JP':'いい','ko-KR':'좋아요','pt-BR':'Bom','de-DE':'Gut','it-IT':'Bene','en-US':'Good'},
+      hint:'<b>Flat hand</b> touches lips/chin, moves forward with palm up — like offering something good.',
+      faceHint:'Positive, pleased expression.',
+      pose:{indexUp:true,middleUp:true,ringUp:true,pinkyUp:true,thumbOut:false,bothHands:false}
+    },
+    {
+      en:'SORRY',
+      translations:{'ne-NP':'माफ गर्नुस्','hi-IN':'माफ करना','es-ES':'Lo siento','fr-FR':'Désolé','ar-SA':'آسف','zh-CN':'对不起','ja-JP':'ごめんなさい','ko-KR':'미안해요','pt-BR':'Desculpe','de-DE':'Entschuldigung','it-IT':'Scusa','en-US':'Sorry'},
+      hint:'<b>Fist</b> makes circular rubbing motion on chest.',
+      faceHint:'Apologetic, remorseful expression.',
+      pose:{indexUp:false,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:false,bothHands:false}
+    },
+  ],
+  intermediate: [
+    {
+      en:'FAMILY',
+      translations:{'ne-NP':'परिवार','hi-IN':'परिवार','es-ES':'Familia','fr-FR':'Famille','ar-SA':'عائلة','zh-CN':'家庭','ja-JP':'家族','ko-KR':'가족','pt-BR':'Família','de-DE':'Familie','it-IT':'Famiglia','en-US':'Family'},
+      hint:'<b>F-shape both hands</b> start with thumbs touching, move apart in circle until pinkies touch.',
+      faceHint:'Warm, familial expression.',
+      pose:{indexUp:false,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:true,bothHands:true}
+    },
+    {
+      en:'FRIEND',
+      translations:{'ne-NP':'साथी','hi-IN':'दोस्त','es-ES':'Amigo','fr-FR':'Ami','ar-SA':'صديق','zh-CN':'朋友','ja-JP':'友達','ko-KR':'친구','pt-BR':'Amigo','de-DE':'Freund','it-IT':'Amico','en-US':'Friend'},
+      hint:'<b>Hook index fingers</b> together, one on top of other, then switch — like two people linking arms.',
+      faceHint:'Friendly, warm smile.',
+      pose:{indexUp:true,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:false,bothHands:true}
+    },
+    {
+      en:'WATER',
+      translations:{'ne-NP':'पानी','hi-IN':'पानी','es-ES':'Agua','fr-FR':'Eau','ar-SA':'ماء','zh-CN':'水','ja-JP':'水','ko-KR':'물','pt-BR':'Água','de-DE':'Wasser','it-IT':'Acqua','en-US':'Water'},
+      hint:'<b>W-handshape</b> (3 fingers up) taps chin twice.',
+      faceHint:'Neutral or thirsty expression.',
+      pose:{indexUp:true,middleUp:true,ringUp:true,pinkyUp:false,thumbOut:false,bothHands:false}
+    },
+    {
+      en:'LEARN',
+      translations:{'ne-NP':'सिक्नु','hi-IN':'सीखना','es-ES':'Aprender','fr-FR':'Apprendre','ar-SA':'تعلم','zh-CN':'学习','ja-JP':'学ぶ','ko-KR':'배우다','pt-BR':'Aprender','de-DE':'Lernen','it-IT':'Imparare','en-US':'Learn'},
+      hint:'<b>Flat hand</b> at forehead, fingers curl as if taking information in. Repeat motion.',
+      faceHint:'Thoughtful, focused expression.',
+      pose:{indexUp:false,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:false,bothHands:false}
+    },
+  ],
+  advanced: [
+    {
+      en:'COMMUNICATE',
+      translations:{'ne-NP':'सञ्चार','hi-IN':'संचार','es-ES':'Comunicar','fr-FR':'Communiquer','ar-SA':'التواصل','zh-CN':'交流','ja-JP':'コミュニケーション','ko-KR':'소통','pt-BR':'Comunicar','de-DE':'Kommunizieren','it-IT':'Comunicare','en-US':'Communicate'},
+      hint:'<b>C-shapes both hands</b>, alternate moving forward and back from mouth — like dialogue going back and forth.',
+      faceHint:'Engaged, attentive expression.',
+      pose:{indexUp:false,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:false,bothHands:true}
+    },
+    {
+      en:'UNDERSTAND',
+      translations:{'ne-NP':'बुझ्नु','hi-IN':'समझना','es-ES':'Entender','fr-FR':'Comprendre','ar-SA':'يفهم','zh-CN':'理解','ja-JP':'理解する','ko-KR':'이해하다','pt-BR':'Entender','de-DE':'Verstehen','it-IT':'Capire','en-US':'Understand'},
+      hint:'<b>Fist at forehead</b>, flick index finger upward — like a lightbulb turning on.',
+      faceHint:'Realization expression — eyebrows raise suddenly.',
+      pose:{indexUp:true,middleUp:false,ringUp:false,pinkyUp:false,thumbOut:false,bothHands:false}
+    },
+  ]
 };
 
-// Common ASL fingerspelled words dictionary
-const dictionary = {
-  // Greetings
-  'HLO': 'HELLO', 'HI': 'HI', 'HEY': 'HEY',
-  'GD': 'GOOD', 'GDM': 'GOOD MORNING', 'GDN': 'GOOD NIGHT',
-  'GDA': 'GOOD AFTERNOON', 'GDE': 'GOOD EVENING',
-  'BYE': 'BYE', 'CYA': 'SEE YOU LATER',
-  // Common words
-  'HLP': 'HELP', 'TNK': 'THANK', 'SRY': 'SORRY',
-  'WLC': 'WELCOME', 'PLS': 'PLEASE', 'NP': 'NO PROBLEM',
-  'OK': 'OKAY', 'YS': 'YES', 'NO': 'NO',
-  'MY': 'MY', 'NM': 'NAME', 'WH': 'WHAT',
-  'WR': 'WHERE', 'WN': 'WHEN', 'HW': 'HOW',
-  'WO': 'WHO', 'WY': 'WHY', 'CN': 'CAN',
-  'ND': 'NEED', 'LK': 'LIKE', 'LV': 'LOVE',
-  'GT': 'GET', 'GV': 'GIVE', 'CM': 'COME',
-  'GO': 'GO', 'ST': 'STOP', 'WK': 'WORK',
-  'EAT': 'EAT', 'DRK': 'DRINK', 'SLP': 'SLEEP',
-  'LD': 'LOUD', 'QT': 'QUIET', 'FN': 'FINE',
-  'GD': 'GOOD', 'BD': 'BAD', 'BG': 'BIG',
-  'SM': 'SMALL', 'HT': 'HOT', 'CLD': 'COLD',
-  'FST': 'FAST', 'SLW': 'SLOW', 'NW': 'NEW',
-  'OLD': 'OLD', 'YNG': 'YOUNG',
-  // Numbers spelled out
-  'ONE': 'ONE', 'TWO': 'TWO', 'THR': 'THREE',
-  'FOR': 'FOUR', 'FIV': 'FIVE', 'SIX': 'SIX',
-  'SVN': 'SEVEN', 'EGT': 'EIGHT', 'NIN': 'NINE',
-  'TEN': 'TEN',
-  // Places
-  'SCL': 'SCHOOL', 'HM': 'HOME', 'WRK': 'WORK',
-  'HSP': 'HOSPITAL', 'STR': 'STORE', 'PRK': 'PARK',
-  // People
-  'MOM': 'MOM', 'DAD': 'DAD', 'SIS': 'SISTER',
-  'BRO': 'BROTHER', 'FRD': 'FRIEND', 'TCH': 'TEACHER',
-  'DCT': 'DOCTOR',
-};
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let difficulty = 'beginner';
+let wordIndex = 0;
+let currentResults = null;
+let holistic = null;
+let camera = null;
+let stream = null;
+let frameCount = 0, lastFpsTime = Date.now();
+let progress = {tried:0, mastered:0, scores:[], history:[]};
+let modelReady = false;
 
-function applyRules(raw) {
-  // Step 1: split into words by spaces
-  let words = raw.trim().toUpperCase().split(/\s+/).filter(Boolean);
-
-  // Step 2: for each word, remove consecutive duplicate letters
-  words = words.map(w => removeDupes(w));
-
-  // Step 3: expand abbreviations and dictionary matches
-  words = words.map(w => {
-    if (dictionary[w]) return dictionary[w];
-    if (abbreviations[w]) return abbreviations[w];
-    return w;
+// ══════════════════════════════════════════════════════
+// LANGUAGE BAR
+// ══════════════════════════════════════════════════════
+function buildLangBar() {
+  const bar = document.getElementById('lang-bar');
+  bar.innerHTML = '';
+  LANGS.forEach(lang => {
+    const btn = document.createElement('button');
+    btn.className = 'lang-btn' + (lang.code === activeLang.code ? ' active' : '');
+    btn.textContent = lang.flag;
+    btn.title = lang.label;
+    btn.onclick = () => {
+      activeLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateWordDisplay();
+    };
+    bar.appendChild(btn);
   });
-
-  // Step 4: join and apply sentence rules
-  let sentence = words.join(' ');
-
-  // Capitalize first letter, lowercase rest
-  sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1).toLowerCase();
-
-  // Fix proper nouns that should stay capitalized (I)
-  sentence = sentence.replace(/\b i \b/g, ' I ');
-  sentence = sentence.replace(/^i /, 'I ');
-
-  // Add period if missing
-  if (sentence && !/[.!?]$/.test(sentence)) sentence += '.';
-
-  return sentence;
 }
 
-// ─── ASL Classifier ───────────────────────────────────────────
-function classifyASL(lm) {
-  if (!lm || lm.length === 0) return null;
-  const indexTip=lm[8], middleTip=lm[12], ringTip=lm[16], pinkyTip=lm[20];
-  const indexBase=lm[5], middleBase=lm[9], ringBase=lm[13], pinkyBase=lm[17];
-  const thumbTip=lm[4];
+// ══════════════════════════════════════════════════════
+// WORD DISPLAY
+// ══════════════════════════════════════════════════════
+function currentWordList() { return WORDS[difficulty]; }
+function currentWord() { return currentWordList()[wordIndex]; }
 
-  const indexUp  = indexTip.y  < indexBase.y  - 0.04;
-  const middleUp = middleTip.y < middleBase.y - 0.04;
-  const ringUp   = ringTip.y   < ringBase.y   - 0.04;
-  const pinkyUp  = pinkyTip.y  < pinkyBase.y  - 0.04;
-  const thumbOut = Math.abs(thumbTip.x - lm[3].x) > 0.06;
-
-  if (!indexUp && !middleUp && !ringUp && !pinkyUp && thumbOut)  return {letter:'A', conf:0.82};
-  if (indexUp && middleUp && ringUp && pinkyUp && thumbOut)       return {letter:'B', conf:0.80};
-  if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbOut)  return {letter:'S', conf:0.75};
-  if (indexUp && !middleUp && !ringUp && !pinkyUp)                return {letter:'D', conf:0.78};
-  if (indexUp && middleUp && !ringUp && !pinkyUp)                 return {letter:'U', conf:0.76};
-  if (indexUp && middleUp && ringUp && !pinkyUp && !thumbOut)     return {letter:'W', conf:0.74};
-  if (!indexUp && !middleUp && !ringUp && pinkyUp)                return {letter:'I', conf:0.77};
-  if (indexUp && !middleUp && !ringUp && pinkyUp)                 return {letter:'Y', conf:0.75};
-  if (indexUp && middleUp && !ringUp && !pinkyUp &&
-      Math.abs(indexTip.x - middleTip.x) > 0.05)                 return {letter:'V', conf:0.74};
-  return null;
+function updateWordDisplay() {
+  const w = currentWord();
+  document.getElementById('word-english').textContent = w.en;
+  const trans = w.translations[activeLang.code] || w.translations['en-US'];
+  document.getElementById('word-trans').textContent = trans;
+  document.getElementById('word-native').textContent =
+    activeLang.code !== 'en-US' ? activeLang.label : '';
+  document.getElementById('word-hint').innerHTML = w.hint;
+  document.getElementById('face-hint').textContent = 'Face: ' + w.faceHint;
 }
 
-// ─── MediaPipe ────────────────────────────────────────────────
-function initHands() {
-  hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.75, minTrackingConfidence:0.6});
-  hands.onResults(onResults);
-  setStatus('MediaPipe loaded — camera ready');
+function nextWord() {
+  wordIndex = (wordIndex + 1) % currentWordList().length;
+  updateWordDisplay();
+  clearScore();
+}
+function prevWord() {
+  wordIndex = (wordIndex - 1 + currentWordList().length) % currentWordList().length;
+  updateWordDisplay();
+  clearScore();
+}
+function setDifficulty(d, el) {
+  difficulty = d;
+  wordIndex = 0;
+  document.querySelectorAll('.diff-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  updateWordDisplay();
+  clearScore();
+}
+
+// ══════════════════════════════════════════════════════
+// SPEAK
+// ══════════════════════════════════════════════════════
+function speakWord() {
+  const w = currentWord();
+  const text = w.translations[activeLang.code] || w.en;
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = activeLang.code;
+    utt.rate = 0.9;
+    speechSynthesis.speak(utt);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// MEDIAPIPE HOLISTIC
+// ══════════════════════════════════════════════════════
+function initHolistic() {
+  document.getElementById('loading-overlay').classList.add('show');
+  setStatus('loading MediaPipe Holistic — both hands + face + pose...');
+
+  holistic = new Holistic({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5/${f}`
+  });
+  holistic.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    refineFaceLandmarks: true,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  });
+  holistic.onResults(onResults);
+  setStatus('model ready — start signing');
 }
 
 function onResults(results) {
+  if (!modelReady) {
+    modelReady = true;
+    document.getElementById('loading-overlay').classList.remove('show');
+    setStatus('tracking active — sign the word shown, then press Score Pose');
+  }
+
+  currentResults = results;
+
+  // FPS
+  frameCount++;
+  const now = Date.now();
+  if (now - lastFpsTime > 1000) {
+    document.getElementById('fps-display').textContent = frameCount + ' fps';
+    frameCount = 0;
+    lastFpsTime = now;
+  }
+
+  // Tracking badges
+  document.getElementById('badge-lh').classList.toggle('active', !!results.leftHandLandmarks);
+  document.getElementById('badge-rh').classList.toggle('active', !!results.rightHandLandmarks);
+  document.getElementById('badge-fc').classList.toggle('active', !!results.faceLandmarks);
+
+  // Keypoint count
+  let kpTotal = 0;
+  if (results.poseLandmarks) kpTotal += results.poseLandmarks.length;
+  if (results.leftHandLandmarks) kpTotal += results.leftHandLandmarks.length;
+  if (results.rightHandLandmarks) kpTotal += results.rightHandLandmarks.length;
+  if (results.faceLandmarks) kpTotal += results.faceLandmarks.length;
+  document.getElementById('kp-count').textContent = kpTotal + ' keypoints tracked live';
+
+  // Draw
+  drawResults(results);
+
+  // Light check
+  checkLighting();
+}
+
+function drawResults(results) {
   const canvas = document.getElementById('overlay');
   const video  = document.getElementById('video');
-  canvas.width = video.videoWidth || 640;
+  canvas.width  = video.videoWidth  || 640;
   canvas.height = video.videoHeight || 480;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (results.multiHandLandmarks?.length > 0) {
-    const lm = results.multiHandLandmarks[0];
-    drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'rgba(0,229,160,0.5)', lineWidth:2});
-    drawLandmarks(ctx, lm, {color:'#00e5a0', lineWidth:1, radius:3});
-    document.getElementById('hand-dot').classList.add('on');
-
-    const result = classifyASL(lm);
-    if (result) {
-      updateConfidence(result.letter, result.conf);
-      holdFrames++;
-      if (holdFrames >= HOLD_THRESHOLD && result.letter !== lastLetter) {
-        lastLetter = result.letter;
-        addLetter(result.letter);
-        holdFrames = 0;
-      }
-    } else {
-      updateConfidence('—', 0);
-      holdFrames = 0;
-      if (lastLetter !== '') { addLetter(' '); lastLetter = ''; }
-    }
-  } else {
-    document.getElementById('hand-dot').classList.remove('on');
-    updateConfidence('—', 0);
-    holdFrames = 0;
+  // Left hand — green
+  if (results.leftHandLandmarks) {
+    drawConnectors(ctx, results.leftHandLandmarks, HAND_CONNECTIONS,
+      {color:'rgba(0,229,160,0.6)', lineWidth:2});
+    drawLandmarks(ctx, results.leftHandLandmarks,
+      {color:'#00e5a0', lineWidth:1, radius:3});
+  }
+  // Right hand — blue
+  if (results.rightHandLandmarks) {
+    drawConnectors(ctx, results.rightHandLandmarks, HAND_CONNECTIONS,
+      {color:'rgba(14,165,233,0.6)', lineWidth:2});
+    drawLandmarks(ctx, results.rightHandLandmarks,
+      {color:'#0ea5e9', lineWidth:1, radius:3});
+  }
+  // Face mesh — purple, subtle
+  if (results.faceLandmarks) {
+    drawConnectors(ctx, results.faceLandmarks, FACEMESH_TESSELATION,
+      {color:'rgba(167,139,250,0.12)', lineWidth:0.5});
+    drawConnectors(ctx, results.faceLandmarks, FACEMESH_RIGHT_EYE,
+      {color:'rgba(167,139,250,0.5)', lineWidth:1});
+    drawConnectors(ctx, results.faceLandmarks, FACEMESH_LEFT_EYE,
+      {color:'rgba(167,139,250,0.5)', lineWidth:1});
+    drawConnectors(ctx, results.faceLandmarks, FACEMESH_LIPS,
+      {color:'rgba(167,139,250,0.6)', lineWidth:1.5});
+  }
+  // Pose — arms only, subtle
+  if (results.poseLandmarks) {
+    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS,
+      {color:'rgba(100,120,140,0.25)', lineWidth:1});
   }
 }
 
-// ─── Letter Management ────────────────────────────────────────
-function addLetter(ch) {
-  if (ch === ' ' && letterBuffer.endsWith(' ')) return;
-  letterBuffer += ch;
-  renderLetters();
-  if (letterBuffer.trim()) document.getElementById('translate-btn').disabled = false;
+// ══════════════════════════════════════════════════════
+// LIGHTING CHECK
+// ══════════════════════════════════════════════════════
+function checkLighting() {
+  try {
+    const video = document.getElementById('video');
+    const c = document.createElement('canvas');
+    c.width = 32; c.height = 24;
+    const cx = c.getContext('2d');
+    cx.drawImage(video, 0, 0, 32, 24);
+    const d = cx.getImageData(0, 0, 32, 24).data;
+    let brightness = 0;
+    for (let i = 0; i < d.length; i += 4)
+      brightness += (d[i] + d[i+1] + d[i+2]) / 3;
+    brightness /= (d.length / 4);
+    document.getElementById('light-warn').style.display = brightness < 60 ? 'block' : 'none';
+  } catch(e) {}
 }
 
-function renderLetters() {
-  const d = document.getElementById('letters-display');
-  if (!letterBuffer.trim()) {
-    d.innerHTML = '<span class="hint">letters appear here as you sign...</span>';
+// ══════════════════════════════════════════════════════
+// POSE SCORING
+// ══════════════════════════════════════════════════════
+function fingerState(lm) {
+  if (!lm) return null;
+  const tip = [lm[4], lm[8], lm[12], lm[16], lm[20]];
+  const base = [lm[2], lm[5], lm[9],  lm[13], lm[17]];
+  return {
+    thumb:  Math.abs(tip[0].x - lm[3].x) > 0.05,
+    index:  tip[1].y < base[1].y - 0.03,
+    middle: tip[2].y < base[2].y - 0.03,
+    ring:   tip[3].y < base[3].y - 0.03,
+    pinky:  tip[4].y < base[4].y - 0.03,
+  };
+}
+
+function detectFaceExpressions(faceLm) {
+  if (!faceLm) return {eyebrowRaise:0, mouthOpen:0, smile:0};
+  // Eyebrow raise: landmarks 70,63 (left brow top) vs 159 (left eye top)
+  const browY  = (faceLm[70].y + faceLm[63].y) / 2;
+  const eyeY   = faceLm[159].y;
+  const eyebrowRaise = Math.max(0, Math.min(1, (eyeY - browY) * 10));
+  // Mouth open: 13 (top lip) vs 14 (bottom lip)
+  const mouthOpen = Math.max(0, Math.min(1, Math.abs(faceLm[13].y - faceLm[14].y) * 20));
+  // Smile: corners 61, 291 width vs 13-14 center
+  const mouthW = Math.abs(faceLm[61].x - faceLm[291].x);
+  const smile  = Math.max(0, Math.min(1, (mouthW - 0.2) * 8));
+  return {eyebrowRaise, mouthOpen, smile};
+}
+
+function scoreCurrentPose() {
+  if (!currentResults) {
+    document.getElementById('feedback-box').innerHTML =
+      '<span class="err">No tracking data. Start camera first.</span>';
     return;
   }
-  d.innerHTML = letterBuffer.split('').map(ch =>
-    ch === ' '
-      ? '<span style="width:12px;display:inline-block"></span>'
-      : `<span class="chip">${ch}</span>`
-  ).join('');
+
+  const w = currentWord();
+  const ref = w.pose;
+
+  // Get hand landmarks -- prefer dominant hand
+  const lm = currentResults.rightHandLandmarks || currentResults.leftHandLandmarks;
+  const bothPresent = !!(currentResults.rightHandLandmarks && currentResults.leftHandLandmarks);
+
+  // Finger scoring
+  const fingers = ['thumb','index','middle','ring','pinky'];
+  const fingerNames = ['Thumb','Index','Middle','Ring','Pinky'];
+  let fingerScores = [0,0,0,0,0];
+  let handScore = 0;
+
+  if (lm) {
+    const state = fingerState(lm);
+    const refState = {
+      thumb: ref.thumbOut, index: ref.indexUp,
+      middle: ref.middleUp, ring: ref.ringUp, pinky: ref.pinkyUp
+    };
+    fingers.forEach((f,i) => {
+      fingerScores[i] = state[f] === refState[f] ? 1 : 0;
+    });
+    handScore = fingerScores.reduce((a,b) => a+b, 0) / 5;
+  }
+
+  // Both hands bonus
+  const bothHandsScore = ref.bothHands ? (bothPresent ? 1 : 0) : 1;
+
+  // Face scoring
+  const faceExp = detectFaceExpressions(currentResults.faceLandmarks);
+
+  // Overall score
+  const overall = Math.round(((handScore * 0.6) + (bothHandsScore * 0.2) + 0.2) * 100);
+
+  // Update UI
+  document.getElementById('score-dot').classList.add('on');
+  document.getElementById('score-num').textContent = overall + '%';
+  document.getElementById('score-num').style.color =
+    overall >= 80 ? 'var(--accent)' : overall >= 60 ? 'var(--warn)' : 'var(--danger)';
+
+  // Finger bars
+  const fg = document.getElementById('finger-grid');
+  fg.innerHTML = '';
+  fingers.forEach((f,i) => {
+    const pct = fingerScores[i] * 100;
+    const cls = pct === 100 ? 'good' : pct > 50 ? 'warn' : 'off';
+    fg.innerHTML += `
+      <div class="fbox">
+        <div class="fname">${fingerNames[i]}</div>
+        <div class="fbar"><div class="fbar-fill ${cls}" style="height:${Math.max(10,pct)}%"></div></div>
+      </div>`;
+  });
+
+  // Face score row
+  const fsr = document.getElementById('face-score-row');
+  fsr.innerHTML = `
+    <div class="fsc">
+      <div class="fsc-val" style="color:#a78bfa">${Math.round(faceExp.eyebrowRaise*100)}%</div>
+      <div class="fsc-lbl">brow raise</div>
+    </div>
+    <div class="fsc">
+      <div class="fsc-val" style="color:#a78bfa">${Math.round(faceExp.mouthOpen*100)}%</div>
+      <div class="fsc-lbl">mouth open</div>
+    </div>
+    <div class="fsc">
+      <div class="fsc-val" style="color:#a78bfa">${Math.round(faceExp.smile*100)}%</div>
+      <div class="fsc-lbl">smile</div>
+    </div>`;
+
+  // Feedback text
+  let fb = '';
+  if (!lm) {
+    fb = '<span class="err">No hand detected. Make sure your hand is visible.</span><br>';
+  } else {
+    fingers.forEach((f,i) => {
+      if (fingerScores[i] === 1) {
+        fb += `<span class="ok">${fingerNames[i]}: correct</span><br>`;
+      } else {
+        const should = f === 'thumb'
+          ? (ref.thumbOut ? 'stick out to the side' : 'tuck in')
+          : ([ref.indexUp,ref.middleUp,ref.ringUp,ref.pinkyUp][i-1] ? 'extend up' : 'curl down');
+        fb += `<span class="err">${fingerNames[i]}: ${should}</span><br>`;
+      }
+    });
+  }
+  if (ref.bothHands && !bothPresent) {
+    fb += '<span class="err">This sign needs BOTH hands visible.</span><br>';
+  }
+  fb += `<span class="face-fb">Face — Brow: ${Math.round(faceExp.eyebrowRaise*100)}% | Mouth: ${Math.round(faceExp.mouthOpen*100)}% | Smile: ${Math.round(faceExp.smile*100)}%</span>`;
+
+  document.getElementById('feedback-box').innerHTML = fb;
+
+  // Update progress
+  progress.tried++;
+  progress.scores.push(overall);
+  if (overall >= 80) progress.mastered++;
+  progress.history.unshift({word: w.en, score: overall});
+  if (progress.history.length > 10) progress.history.pop();
+  updateProgress();
 }
 
-function clearAll() {
-  letterBuffer = ''; lastLetter = ''; holdFrames = 0;
-  renderLetters();
-  document.getElementById('english-out').textContent = 'Translated sentence will appear here...';
-  document.getElementById('english-out').className = 'empty';
-  document.getElementById('translate-btn').disabled = true;
-  updateConfidence('—', 0);
-  setStatus('cleared');
+function clearScore() {
+  document.getElementById('score-num').textContent = '—';
+  document.getElementById('score-num').style.color = 'var(--accent)';
+  document.getElementById('finger-grid').innerHTML = '';
+  document.getElementById('face-score-row').innerHTML = '';
+  document.getElementById('feedback-box').textContent = 'Sign the word above then press Score Pose.';
+  document.getElementById('score-dot').classList.remove('on');
 }
 
-function updateConfidence(letter, conf) {
-  document.getElementById('current-sign').textContent = letter;
-  const pct = Math.round(conf * 100);
-  document.getElementById('conf-pct').textContent = pct + '%';
-  document.getElementById('conf-bar').style.width = pct + '%';
+// ══════════════════════════════════════════════════════
+// PROGRESS
+// ══════════════════════════════════════════════════════
+function updateProgress() {
+  document.getElementById('stat-words').textContent = progress.tried;
+  document.getElementById('stat-mastered').textContent = progress.mastered;
+  const avg = progress.scores.length
+    ? Math.round(progress.scores.reduce((a,b)=>a+b,0)/progress.scores.length)
+    : null;
+  document.getElementById('stat-avg').textContent = avg !== null ? avg+'%' : '—';
+
+  // Streak (last 7 days placeholder)
+  const sr = document.getElementById('streak-row');
+  sr.innerHTML = '';
+  ['M','T','W','T','F','S','S'].forEach((d,i) => {
+    const done = i < (progress.tried > 0 ? 3 : 0);
+    sr.innerHTML += `<div class="sday ${done?'done':''}">${d}</div>`;
+  });
+
+  // History
+  const hl = document.getElementById('hist-list');
+  if (progress.history.length === 0) {
+    hl.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:0.7rem;color:var(--muted);">No attempts yet.</div>';
+    return;
+  }
+  hl.innerHTML = progress.history.map(h => {
+    const cls = h.score >= 80 ? 'hs-hi' : h.score >= 60 ? 'hs-mid' : 'hs-lo';
+    return `<div class="hist-row">
+      <span class="hist-word">${h.word}</span>
+      <span class="hist-score ${cls}">${h.score}%</span>
+    </div>`;
+  }).join('');
 }
 
-// ─── Translation (rule-based + dictionary, no AI) ─────────────
-function translateText() {
-  const raw = letterBuffer.trim();
-  if (!raw) return;
-  const result = applyRules(raw);
-  const out = document.getElementById('english-out');
-  out.className = '';
-  out.textContent = result;
-  document.getElementById('out-dot').classList.add('on');
-  setTimeout(() => document.getElementById('out-dot').classList.remove('on'), 1500);
-  setStatus('translation complete — rule-based processing applied');
-}
-
-// ─── Camera ───────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════
 async function startCamera() {
   try {
-    setStatus('requesting camera access...');
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
+    setStatus('requesting camera...');
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480},audio:false});
     const video = document.getElementById('video');
     video.srcObject = stream;
     await video.play();
+
     document.getElementById('cam-idle').style.display = 'none';
     document.getElementById('cam-dot').classList.add('on');
     document.getElementById('cam-label').textContent = 'camera live';
     document.getElementById('start-btn').style.display = 'none';
     document.getElementById('stop-btn').style.display = '';
-    if (!hands) initHands();
+
+    if (!holistic) initHolistic();
+
     camera = new Camera(video, {
-      onFrame: async () => { await hands.send({image: video}); },
+      onFrame: async () => { if (holistic) await holistic.send({image: video}); },
       width: 640, height: 480
     });
     camera.start();
-    setStatus('camera live — start signing ASL letters');
   } catch(e) {
     setStatus('camera error: ' + e.message);
   }
@@ -396,33 +882,45 @@ async function startCamera() {
 function stopCamera() {
   if (camera) { camera.stop(); camera = null; }
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  modelReady = false;
   document.getElementById('video').srcObject = null;
   document.getElementById('cam-idle').style.display = '';
   document.getElementById('cam-dot').classList.remove('on');
-  document.getElementById('hand-dot').classList.remove('on');
   document.getElementById('cam-label').textContent = 'camera offline';
   document.getElementById('start-btn').style.display = '';
   document.getElementById('stop-btn').style.display = 'none';
+  ['badge-lh','badge-rh','badge-fc'].forEach(id =>
+    document.getElementById(id).classList.remove('active'));
   setStatus('camera stopped');
 }
 
-// ─── Utilities ────────────────────────────────────────────────
-function speakOutput() {
-  const text = document.getElementById('english-out').textContent;
-  if (!text || text.includes('appear here')) return;
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate = 0.95;
-  speechSynthesis.speak(utt);
-}
-
-function copyOutput() {
-  const text = document.getElementById('english-out').textContent;
-  if (text) navigator.clipboard.writeText(text).then(() => setStatus('copied to clipboard'));
+function clearSession() {
+  clearScore();
+  progress = {tried:0, mastered:0, scores:[], history:[]};
+  updateProgress();
+  setStatus('session cleared');
 }
 
 function setStatus(msg) {
-  document.getElementById('status-bar').innerHTML = `status: <span>${msg}</span>`;
+  document.getElementById('status-msg').textContent = msg;
 }
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+buildLangBar();
+updateWordDisplay();
+updateProgress();
+
+// Build finger grid placeholders
+const fg = document.getElementById('finger-grid');
+['Thumb','Index','Middle','Ring','Pinky'].forEach(name => {
+  fg.innerHTML += `
+    <div class="fbox">
+      <div class="fname">${name}</div>
+      <div class="fbar"><div class="fbar-fill good" style="height:10%"></div></div>
+    </div>`;
+});
 </script>
 </body>
 </html>
