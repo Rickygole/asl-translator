@@ -519,7 +519,7 @@ function classifySign(lm){
   }
 
   // Only return if confidence >= 80% AND clearly better than runner up
-  if(bestScore >= 0.72){
+  if(bestScore >= 0.80){
     return { sign: best, confidence: bestScore };
   }
   return null;
@@ -533,10 +533,8 @@ let holdFrames = 0;
 let lastConfirmedWord = '';
 let cooldownFrames = 0;
 let currentMatch = null;
-let mismatchFrames = 0;
-let mismatchFrames = 0;
-const HOLD_NEEDED = 12;    // 0.4s at 30fps
-const COOLDOWN_NEEDED = 20; // 0.7s pause between words
+const HOLD_NEEDED = 45;   // 1.5s at 30fps
+const COOLDOWN_NEEDED = 25; // 0.8s pause between words
 
 // ══════════════════════════════════════════
 // WORD OUTPUT
@@ -764,15 +762,10 @@ function onResults(results){
 
       // Check if same sign is being held consistently
       if(sign.word === (currentMatch ? currentMatch.word : '')){
-        mismatchFrames = 0;
         holdFrames++;
       } else {
-        mismatchFrames++;
-        if(mismatchFrames >= 3){
-          holdFrames = 1;
-          currentMatch = sign;
-          mismatchFrames = 0;
-        }
+        holdFrames = 1;
+        currentMatch = sign;
       }
 
       document.getElementById('live-word').textContent = sign.word;
